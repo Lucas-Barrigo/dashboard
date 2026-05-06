@@ -1,0 +1,895 @@
+================================================================================
+  DORA COMPLIANCE DASHBOARD — GUIA COMPLETO DE TEMPLATES E PERGUNTAS
+  Regulamento DORA (EU 2022/2554) · Caso de Estudo Natixis
+================================================================================
+
+Este documento explica o propósito de cada template, secção e campo do dashboard.
+Os templates seguem as fases DevSecOps: T0 → T1 → T2 → T3 → T4 → T5.
+Cada fase deve ser aprovada antes de avançar para a seguinte.
+
+PILARES DORA
+  P1 – ICT Risk Management       (Gestão de Risco TIC)
+  P2 – Incident Management       (Gestão de Incidentes)
+  P3 – Resilience Testing        (Testes de Resiliência)
+  P4 – Third-Party Risk          (Risco de Fornecedores TIC)
+  P5 – Information Sharing       (Partilha de Informação)
+
+
+================================================================================
+  T0 – QUALIFICAÇÃO (Ativação de Pilares)
+================================================================================
+
+Objetivo: Determinar quais os pilares DORA que se aplicam ao projeto.
+As respostas "Sim" ativam o pilar correspondente em todos os templates
+seguintes. Respostas "Não" ocultam as secções desse pilar (aparece "N/A").
+Deve ser o PRIMEIRO passo e só pode ser aprovado uma vez.
+
+--- PILAR P1 – ICT Risk Management ---
+
+  P1_Q1 · O sistema suporta funções críticas ou importantes da instituição?
+    → Determina se o sistema está no âmbito do Art. 5 DORA (funções críticas
+      exigem gestão formal de risco TIC). Ex: sistemas de pagamento, core
+      banking, autenticação de clientes.
+
+  P1_Q2 · O sistema processa dados financeiros ou de clientes?
+    → Dados financeiros têm requisitos de confidencialidade, integridade e
+      disponibilidade (CIA) mais exigentes. Implica controlos de segurança
+      adicionais nos sprints seguintes.
+
+  P1_Q3 · O projeto envolve alterações à infraestrutura de produção?
+    → Mudanças em produção aumentam o risco operacional. Obriga a registo
+      formal de riscos (T1), revisão de arquitetura (T2) e testes antes do
+      deploy (T4/T5).
+
+  P1_Q4 · O projeto introduz novas tecnologias ou arquiteturas?
+    → Novas tecnologias requerem avaliação de risco específica (Art. 6 DORA)
+      e documentação de decisões arquiteturais (ADRs no T2).
+
+--- PILAR P2 – Incident Management ---
+
+  P2_Q1 · O sistema estará em produção e sujeito a monitorização contínua?
+    → Sistemas em produção monitorados devem ter plano de resposta a incidentes
+      documentado (Art. 17), classificação de incidentes e notificação às
+      autoridades em casos graves.
+
+  P2_Q2 · Uma falha do sistema pode causar interrupção de serviços financeiros?
+    → Falhas que causem interrupção de serviços financeiros são consideradas
+      "incidentes graves" pelo DORA e têm obrigação de notificação à autoridade
+      competente dentro de 4 horas (Art. 19).
+
+  P2_Q3 · O sistema processa transações em tempo real?
+    → Sistemas de transações em tempo real têm SLAs de disponibilidade críticos.
+      Uma falha tem impacto imediato e quantificável, exigindo RTO/RPO definidos.
+
+--- PILAR P3 – Resilience Testing ---
+
+  P3_Q1 · O projeto afeta sistemas classificados como críticos pela instituição?
+    → Sistemas críticos devem realizar testes de resiliência periódicos (Art. 25)
+      incluindo Disaster Recovery (DR) e Business Continuity (BCP).
+
+  P3_Q2 · A instituição está sujeita a TLPT obrigatório (Art. 26) para este tipo
+          de sistema?
+    → TLPT = Threat-Led Penetration Testing. Exigido para instituições financeiras
+      de grande dimensão. Teste avançado que simula ataques reais conduzido por
+      entidade certificada externa.
+
+  P3_Q3 · O projeto introduz alterações significativas a sistemas existentes?
+    → Alterações significativas podem comprometer a resiliência existente.
+      Obrigam a novos testes de pen test e funcionais de segurança (T4).
+
+--- PILAR P4 – Third-Party Risk ---
+
+  P4_Q1 · O projeto envolve fornecedores TIC externos?
+    → Fornecedores TIC estão no âmbito do Art. 28 DORA. Devem ser registados
+      (T1), ter SLAs documentados (T2) e ser avaliados periodicamente (T5).
+
+  P4_Q2 · Algum fornecedor terá acesso a sistemas ou dados críticos?
+    → Fornecedores com acesso crítico têm requisitos adicionais de due diligence,
+      cláusulas contratuais obrigatórias e direitos de auditoria (Art. 30).
+
+  P4_Q3 · O projeto depende de serviços cloud ou infraestrutura de terceiros?
+    → Dependências de cloud/infraestrutura de terceiros são risco de concentração
+      (Art. 29). Exigem estratégia de saída, redundância e monitorização contínua.
+
+--- PILAR P5 – Information Sharing ---
+
+  P5_Q1 · A instituição participa em acordos de partilha de informação?
+    → DORA Art. 45 incentiva partilha voluntária de informação sobre ameaças
+      cibernéticas entre instituições financeiras (ISACs, acordos bilaterais).
+
+  P5_Q2 · O projeto envolve sistemas onde IOCs devem ser reportados ao setor?
+    → IOC = Indicator of Compromise. Alguns sistemas críticos têm obrigação de
+      reportar indicadores de comprometimento ao regulador e ao setor para
+      proteção coletiva.
+
+
+================================================================================
+  T1 – PLANEAMENTO (Gestão de Risco ICT)
+================================================================================
+
+Objetivo: Planear o sprint do ponto de vista DORA. Documentar user stories
+com análise de risco, registar riscos identificados e mapear fornecedores TIC.
+Corresponde às fases de planeamento de sprint em Scrum/SAFe.
+
+--- SECÇÃO: Dados de Risco ICT (Checklist Principal) ---
+
+  Status do Plano de Resposta a Incidentes
+    → Estado atual do Incident Response Plan (IRP) para este sprint.
+      Valores típicos: EM_REVISÃO, DOCUMENTADO, APROVADO, INCOMPLETO.
+      O Art. 17 DORA exige que o plano esteja documentado e testado.
+      "COMPLETE" é necessário para o alerta P2_IRP_INCOMPLETE ser resolvido.
+
+  Impacto DORA verificado para este sprint [checkbox]
+    → Confirmação de que a equipa analisou se as funcionalidades deste sprint
+      têm impacto nas obrigações DORA (ex: alteram sistemas críticos, introduzem
+      novos fornecedores, afetam dados financeiros). Obrigatório para o pilar P2.
+      Sem esta verificação, é gerado alerta CRÍTICO P2_IMPACT_NOT_VERIFIED.
+
+  Notas
+    → Campo livre para observações sobre o risco geral do sprint.
+
+--- SECÇÃO: User Stories ---
+
+  Propósito: Registar as histórias de utilizador do sprint com marcação de
+  risco DORA, para rastreabilidade entre funcionalidades e obrigações regulatórias.
+
+  Ref * (ex: US-001)
+    → Identificador único da user story. Deve ser único no sprint.
+
+  Descrição *
+    → O que a funcionalidade faz ("Como [papel] quero [ação] para [benefício]").
+
+  Afeta sistema crítico [checkbox]
+    → A funcionalidade toca num sistema classificado como crítico. Implica
+      revisão adicional de segurança e pode acionar TLPT (Art. 26).
+
+  Introduz risco ICT [checkbox]
+    → A funcionalidade introduz um novo risco TIC (ex: nova dependência,
+      nova superfície de ataque, novo fluxo de dados sensíveis).
+
+  Mudança em produção [checkbox]
+    → A história implica deploy em produção neste sprint. Aumenta a
+      necessidade de rollback plan (T5) e testes (T4).
+
+  Novo fornecedor terceiro [checkbox]
+    → A história implica integração com um novo fornecedor TIC. Deve ser
+      acompanhada de registo do fornecedor na secção Fornecedores abaixo.
+
+  Critério CIA – Confidencialidade
+    → Requisito de confidencialidade dos dados tratados por esta story.
+      Ex: "Dados cifrados em trânsito e em repouso (AES-256)".
+
+  Critério CIA – Integridade
+    → Garantia de integridade. Ex: "Assinatura digital nas mensagens",
+      "Checksums validados antes de processamento".
+
+  Critério CIA – Disponibilidade
+    → Requisito de disponibilidade. Ex: "SLA de 99.9%", "Sem SPOF (Single
+      Point of Failure)", "Suporte a modo degradado".
+
+--- SECÇÃO: Registo de Riscos ---
+
+  Propósito: Identificar e rastrear riscos DORA por sprint. Base para o
+  plano de mitigação e para demonstrar conformidade com Art. 6 DORA.
+
+  Ref * (ex: R-001)
+    → Identificador único do risco. Deve ser único no sprint.
+
+  Pilar
+    → Qual pilar DORA este risco afeta (P1 a P5). Permite filtrar riscos
+      por área regulatória.
+
+  Descrição *
+    → O que pode correr mal. Ex: "Fornecedor X pode ficar indisponível
+      durante pico de tráfego, causando falha no processamento de pagamentos."
+
+  Probabilidade (LOW / MEDIUM / HIGH)
+    → Likelihood de o risco se concretizar. Avaliação qualitativa da equipa.
+
+  Impacto (LOW / MEDIUM / HIGH)
+    → Gravidade das consequências se o risco ocorrer. Considera impacto
+      operacional, financeiro e regulatório.
+
+  Status (OPEN / MITIGATED / ACCEPTED)
+    → OPEN: risco identificado mas sem mitigação completa.
+      MITIGATED: controlos implementados reduzem o risco a nível aceitável.
+      ACCEPTED: risco reconhecido e aceite formalmente pela gestão.
+
+  Mitigação
+    → Ações tomadas ou planeadas para reduzir o risco. Ex: "Implementar
+      circuit breaker", "Adicionar fornecedor alternativo", "Cifrar dados X".
+
+--- SECÇÃO: Fornecedores (P4 – apenas se P4 ativo) ---
+
+  Propósito: Inventário de fornecedores TIC do sprint. O DORA Art. 28 exige
+  registo de todos os fornecedores com acesso a sistemas críticos.
+
+  Nome * (identificador único no sprint)
+    → Nome comercial do fornecedor TIC. Ex: "AWS", "Temenos", "SWIFT".
+
+  Descrição do Serviço
+    → O que o fornecedor fornece. Ex: "Hosting de infraestrutura cloud",
+      "Core banking system", "Rede de pagamentos interbancários".
+
+  Estado do Contrato
+    → Estado atual do contrato. Valores típicos: ATIVO, PENDENTE, EXPIRADO.
+      PENDENTE gera alerta WARNING P4 SUPPLIER_PENDING no motor de alertas.
+
+  Acesso a sistemas críticos [checkbox]
+    → Se o fornecedor tem acesso direto a sistemas críticos ou dados sensíveis.
+      Fornecedores com acesso crítico têm obrigações adicionais (Art. 30 DORA):
+      cláusulas de notificação de incidentes, direitos de auditoria, etc.
+
+
+================================================================================
+  T2 – ARQUITETURA & AMEAÇAS
+================================================================================
+
+Objetivo: Validar que a arquitetura do sprint é segura por design (DORA Art. 9).
+Modelar ameaças STRIDE, documentar decisões arquiteturais e garantir que os
+SLAs com fornecedores têm as cláusulas obrigatórias do DORA.
+
+--- SECÇÃO: Checklist de Arquitetura Segura ---
+
+  Propósito: Verificar que os princípios de segurança Zero Trust e resiliência
+  estão implementados. Evidência de conformidade com Art. 9 DORA.
+
+  Zero Trust – Autenticação Mútua [checkbox]
+    → Todos os serviços autenticam a identidade uns dos outros (mutual TLS,
+      tokens de serviço). Impede movimento lateral em caso de compromisso.
+
+  Zero Trust – Segmentação de Rede [checkbox]
+    → A rede está dividida em zonas com políticas de acesso mínimo entre elas.
+      Limita o impacto de um comprometimento a um segmento isolado.
+
+  Zero Trust – Mínimo Privilégio [checkbox]
+    → Cada serviço, utilizador ou processo tem apenas as permissões
+      estritamente necessárias para a sua função (Principle of Least Privilege).
+
+  Circuit Breakers implementados [checkbox]
+    → Padrão de resiliência: quando um serviço dependente falha, o circuit
+      breaker "abre" e evita cascata de falhas. Contribui para disponibilidade
+      e RTO baixo.
+
+  Failover configurado [checkbox]
+    → Existe mecanismo automático de failover para componentes críticos
+      (ex: base de dados secundária, região cloud alternativa).
+
+  DRP documentado [checkbox]
+    → Disaster Recovery Plan (Plano de Recuperação de Desastre) está
+      documentado e cobre os componentes deste sprint. Art. 11 DORA exige
+      planos de continuidade e recuperação formais.
+
+  Redundância configurada [checkbox]
+    → Componentes críticos têm redundância (ex: múltiplos nós, multi-AZ,
+      load balancers). Reduz SPOF e aumenta disponibilidade.
+
+  Estratégia de Backup definida [checkbox]
+    → Existe estratégia de backup para dados críticos: frequência, retenção,
+      localização, testes de restauro. Art. 12 DORA exige políticas de backup.
+
+  Notas
+    → Observações adicionais sobre a arquitetura, decisões pendentes, dívida
+      técnica identificada.
+
+--- SECÇÃO: Modelação de Ameaças STRIDE ---
+
+  Propósito: Identificar e documentar ameaças de segurança usando a metodologia
+  STRIDE (Microsoft). Base para os testes de segurança no T4. Art. 9 DORA
+  exige avaliação de vulnerabilidades e ameaças.
+
+  Ref * (ex: T-001)
+    → Identificador único da ameaça. Referenciado nos testes de segurança (T4).
+
+  Categoria STRIDE:
+    → Spoofing           – falsificação de identidade (ex: phishing, session hijack)
+    → Tampering          – adulteração de dados em trânsito ou em repouso
+    → Repudiation        – negação de ações realizadas (ex: falta de logs de auditoria)
+    → Information Disclosure – exposição indevida de dados (ex: logs com dados sensíveis)
+    → Denial of Service  – indisponibilidade do serviço (ex: DDoS, resource exhaustion)
+    → Elevation of Privilege – ganho de permissões não autorizadas (ex: escalada de privilégios)
+
+  Descrição *
+    → Explicação detalhada da ameaça: como pode ocorrer, em que componente,
+      qual o impacto esperado.
+
+  Ativo Afetado
+    → O componente, serviço ou dado que esta ameaça pode comprometer.
+      Ex: "API de autenticação", "Base de dados de clientes", "Fila Kafka".
+
+  Nível de Risco (LOW / MEDIUM / HIGH / CRITICAL)
+    → Avaliação combinada de probabilidade e impacto desta ameaça.
+
+  Mitigação
+    → Controlos implementados ou planeados para mitigar esta ameaça.
+      Ex: "Rate limiting na API", "Validação de input com schema", "MFA obrigatório".
+
+  Ref. Teste de Segurança
+    → Referência ao teste no T4 que valida a mitigação desta ameaça (ex: ST-001).
+      Garante rastreabilidade entre ameaças e evidências de teste.
+
+--- SECÇÃO: ADRs (Architecture Decision Records) ---
+
+  Propósito: Documentar decisões arquiteturais com impacto de segurança ou DORA.
+  Cada ADR deve ser aprovado pelo Risk Manager antes do sprint poder ser fechado.
+  Art. 9 DORA exige que decisões de segurança sejam formalmente aprovadas.
+
+  Ref * (ex: ADR-001)
+    → Identificador único do ADR. Deve ser único no sprint.
+
+  Decisão *
+    → Título da decisão. Ex: "Usar JWT para autenticação de microserviços",
+      "Migrar base de dados para PostgreSQL gerido na cloud".
+
+  Contexto
+    → Porque esta decisão foi necessária: qual o problema, quais as restrições,
+      qual o estado atual. Permite entender a decisão no futuro.
+
+  Alternativas Consideradas
+    → Que outras opções foram avaliadas e porque foram rejeitadas. Demonstra
+      que a decisão foi tomada de forma fundamentada.
+
+  Justificação de Segurança
+    → Como esta decisão impacta a postura de segurança. Ex: "JWT signed with
+      RS256 garante não-repúdio e permite revogação centralizada."
+
+  Implicações DORA
+    → Que artigos DORA esta decisão afeta ou satisfaz. Ex: "Cumpre Art. 9(4)
+      ao garantir autenticação forte entre serviços internos."
+
+  Aprovação do Risk Manager
+    → Botão "Aprovar ADR" na tabela. Simula aprovação formal pelo Risk Manager.
+      Sem todos os ADRs aprovados, o T2 não pode ser fechado.
+
+--- SECÇÃO: SLAs de Fornecedores (P4 – apenas se P4 ativo) ---
+
+  Propósito: Documentar os acordos de nível de serviço com fornecedores TIC.
+  Art. 30 DORA lista cláusulas obrigatórias nos contratos com fornecedores TIC.
+
+  Fornecedor * (identificador único no sprint)
+    → Nome do fornecedor TIC cujo SLA está a ser documentado.
+
+  SLA de Disponibilidade
+    → Percentagem de disponibilidade contratual. Ex: "99.95% por mês".
+      Deve cobrir o RTO/RPO exigido pelo sistema que depende do fornecedor.
+
+  Cláusula de notificação de incidentes [checkbox]
+    → O contrato inclui obrigação do fornecedor notificar incidentes de segurança
+      dentro de prazo definido? Art. 30 DORA exige esta cláusula. Sem ela,
+      gera alerta WARNING P2_NO_SUPPLIER_SLA.
+
+  Direitos de Auditoria [checkbox]
+    → O contrato permite à instituição auditar o fornecedor (ou exigir relatórios
+      de auditorias de terceiros)? Art. 30 DORA exige este direito para
+      fornecedores críticos.
+
+  Status SLA (MET / BREACHED / AT_RISK)
+    → Estado atual do cumprimento do SLA:
+      MET      – SLA está a ser cumprido
+      AT_RISK  – há indicadores de deterioração mas sem violação formal
+      BREACHED – SLA foi violado neste período
+
+
+================================================================================
+  T3 – IMPLEMENTAÇÃO (Pipeline DevSecOps)
+================================================================================
+
+Objetivo: Verificar que o código desenvolvido no sprint segue as práticas
+de segurança DORA durante a implementação. Inclui segurança do pipeline CI/CD,
+gestão de dependências e rastreabilidade. Art. 9 e 10 DORA.
+
+--- SECÇÃO: Checklist DevSecOps ---
+
+  Propósito: Auditoria das práticas de desenvolvimento seguro implementadas
+  neste sprint. Cada item representa um controlo DORA/OWASP.
+
+  Diretrizes OWASP seguidas [checkbox]
+    → O desenvolvimento seguiu o OWASP Top 10 e/ou OWASP ASVS. Inclui
+      proteção contra injeção SQL, XSS, CSRF, broken authentication, etc.
+
+  Code Review com foco de segurança concluído [checkbox]
+    → Foi realizada revisão de código com checklist de segurança antes do merge.
+      Pelo menos um revisor validou aspetos de segurança (não apenas funcionalidade).
+
+  Gestão de segredos ativa [checkbox]
+    → Não existem credenciais, chaves API ou passwords no código fonte.
+      Segredos são geridos via vault (HashiCorp Vault, AWS Secrets Manager, etc.)
+      e injetados em runtime. Crítico para Art. 9 DORA.
+
+  Validação de input ativa [checkbox]
+    → Todos os inputs de utilizadores e APIs externas são validados e
+      sanitizados (tipo, tamanho, formato, conteúdo) antes de processamento.
+
+  Mecanismos de autenticação documentados [checkbox]
+    → Os mecanismos de autenticação usados (OAuth2, OIDC, SAML, MFA) estão
+      documentados e configurados de acordo com as políticas de segurança.
+
+  Logging estruturado ativo [checkbox]
+    → Logs são emitidos em formato estruturado (JSON) com campos padronizados:
+      timestamp, nível, serviço, correlationId, userId (não dados sensíveis).
+      Fundamental para deteção de incidentes.
+
+  Audit Trail gerado automaticamente [checkbox]
+    → Ações críticas (login, alterações de dados, acessos a dados sensíveis)
+      geram automaticamente entradas de auditoria imutáveis. Art. 12 DORA
+      exige audit trails íntegros e protegidos contra adulteração.
+
+  Retenção de logs 7 anos [checkbox]
+    → Os logs de auditoria são retidos por mínimo 7 anos, conforme exigido
+      pelo Art. 12(1)(f) DORA para instituições financeiras.
+
+  Proteção contra adulteração de logs [checkbox]
+    → Os logs são armazenados de forma a impedir modificação (ex: write-once
+      storage, WORM, ou replicação para storage imutável com hash verification).
+
+  Inventário de dependências atualizado [checkbox]
+    → Existe SBOM (Software Bill of Materials) ou equivalente listando todas
+      as dependências e versões do sprint. Base para gestão de vulnerabilidades.
+
+  Acesso de fornecedores monitorizado [checkbox]
+    → Acessos de fornecedores TIC a sistemas são registados e monitorizados.
+      Art. 28 DORA exige supervisão contínua de acessos de terceiros.
+
+  Notas
+    → Observações sobre práticas de desenvolvimento, debt técnico de segurança,
+      exceções documentadas com justificação.
+
+--- SECÇÃO: Pipeline Scans (Análises de Segurança) ---
+
+  Propósito: Registar as análises de segurança executadas no pipeline CI/CD.
+  Art. 9 DORA exige identificação e gestão de vulnerabilidades.
+
+  Tipo de Scan:
+    → SAST  (Static Application Security Testing) – análise de código estático
+              sem execução (ex: SonarQube, Semgrep, Checkmarx)
+    → SCA   (Software Composition Analysis) – vulnerabilidades em dependências
+              (ex: OWASP Dependency-Check, Snyk, Dependabot)
+    → IaC   (Infrastructure as Code Security) – análise de Terraform/Helm/K8s
+              (ex: Checkov, tfsec, Trivy)
+    → DAST  (Dynamic Application Security Testing) – testes em aplicação a correr
+              (ex: OWASP ZAP, Burp Suite)
+
+  Fase do Pipeline (BUILD / TEST / DEPLOY)
+    → Em que fase do CI/CD este scan é executado.
+
+  Ambiente (DEV / STAGING / PROD)
+    → Em que ambiente o scan foi executado.
+
+  Ferramenta
+    → Nome da ferramenta usada. Ex: "SonarQube 9.9", "Snyk CLI", "Trivy 0.48".
+
+  Data de Execução
+    → Quando o scan foi executado. Importante para rastreabilidade.
+
+  Resultado (PASS / FAIL / NOT_RUN)
+    → Se o scan passou nos critérios de qualidade definidos.
+
+  Críticos (CVSS ≥ 7.0)
+    → Número de vulnerabilidades com score CVSS ≥ 7.0 ainda por resolver.
+      Se > 0, gera alerta CRÍTICO CVSS_HIGH_UNRESOLVED no motor de alertas.
+      T3 não deve ser aprovado com críticos em aberto.
+
+  Ref. Relatório
+    → Referência ao relatório completo do scan (ex: ID no SonarQube, URL
+      no Snyk, nome do ficheiro de relatório).
+
+--- SECÇÃO: Dependências com Vulnerabilidades ---
+
+  Propósito: Registar dependências identificadas com vulnerabilidades conhecidas
+  (CVEs). Rastreabilidade para decisões de patching e gestão de risco.
+
+  Package * (identificador único no sprint)
+    → Nome do pacote/biblioteca. Ex: "log4j", "lodash", "spring-core".
+
+  Versão
+    → Versão afetada. Ex: "2.14.0". Necessário para confirmar se a versão
+      usada é vulnerável.
+
+  CVE ID
+    → Identificador da vulnerabilidade na base de dados CVE.
+      Ex: "CVE-2021-44228" (Log4Shell). Permite consulta pública de detalhes.
+
+  CVSS Score (0.0 – 10.0)
+    → Gravidade padronizada da vulnerabilidade:
+      0.0–3.9: LOW    4.0–6.9: MEDIUM    7.0–8.9: HIGH    9.0–10.0: CRITICAL
+
+  Status (OK / VULNERABLE / PATCHED / PENDING)
+    → OK         – dependência sem vulnerabilidades conhecidas
+      VULNERABLE  – vulnerabilidade identificada, remediação pendente
+      PATCHED     – atualização/patch aplicado
+      PENDING     – análise em curso ou decisão de aceitar o risco pendente
+
+
+================================================================================
+  T4 – TESTES DE RESILIÊNCIA
+================================================================================
+
+Objetivo: Executar e documentar testes de segurança e resiliência. Validar
+que o sistema aguenta falhas e ataques. Art. 24, 25 e 26 DORA.
+
+--- SECÇÃO: TLPT & Validações de Resiliência ---
+
+  Propósito: Verificar os controlos de resiliência antes do deploy. Checklist
+  obrigatório para sistemas críticos.
+
+  TLPT aplicável a esta entidade [checkbox]
+    → Threat-Led Penetration Testing é obrigatório (Art. 26) para certas
+      instituições financeiras. Se SIM, deve ser agendado/concluído.
+
+  TLPT concluído ou agendado [checkbox]
+    → Se TLPT é aplicável, confirma que já foi realizado ou tem data agendada.
+      Se não estiver agendado, gera alerta CRÍTICO TLPT_NOT_SCHEDULED.
+
+  Data TLPT (visível apenas se "TLPT concluído ou agendado" = Sim)
+    → Data de realização ou data agendada do TLPT.
+
+  Integridade do Audit Trail verificada [checkbox]
+    → Confirmação de que os logs de auditoria do sistema estão íntegros
+      e não foram adulterados. Verificação periódica exigida pelo Art. 12 DORA.
+
+  Resposta a incidentes testada [checkbox]
+    → O processo de resposta a incidentes foi testado neste sprint (ex: simulação
+      de incidente, tabletop exercise). Art. 17 DORA exige testes periódicos.
+
+  Avaliações de risco validadas [checkbox]
+    → Os riscos identificados no T1 foram reavaliados à luz dos resultados
+      dos testes. Fechamento do ciclo de gestão de risco.
+
+  Notas
+    → Observações sobre o estado geral dos testes, limitações encontradas,
+      itens a endereçar no próximo sprint.
+
+--- SECÇÃO: Testes Funcionais de Segurança ---
+
+  Propósito: Testes de segurança funcionais que validam mitigações das ameaças
+  STRIDE identificadas no T2. Cada teste deve referenciar a ameaça que testa.
+
+  Ref Teste * (ex: ST-001)
+    → Identificador único do teste de segurança. Deve ser único no sprint.
+
+  Ref Ameaça (T2)
+    → Referência à ameaça STRIDE do T2 que este teste valida (ex: T-001).
+      Garante rastreabilidade: cada ameaça deve ter pelo menos um teste.
+
+  Descrição
+    → O que o teste verifica. Ex: "Verificar que tentativas de injeção SQL
+      na API /search são bloqueadas e registadas."
+
+  Resultado (PASS / FAIL / PARTIAL)
+    → PASS    – a mitigação funciona conforme esperado
+      FAIL    – a mitigação falhou, vulnerabilidade confirmada
+      PARTIAL – a mitigação funciona parcialmente, remediação necessária
+
+  Ref. Evidência
+    → Referência ao artefacto que evidencia o resultado do teste (ex: ID no
+      Jira, nome do ficheiro de screenshot, URL do relatório).
+
+--- SECÇÃO: Pen Tests ---
+
+  Propósito: Registo de testes de intrusão (penetration tests) formais.
+  Art. 25 DORA exige testes de resiliência baseados em ameaças para
+  sistemas críticos.
+
+  Data
+    → Data de realização do pen test.
+
+  Entidade Responsável
+    → Quem realizou o pen test: equipa interna de Red Team ou empresa externa
+      certificada. TLPT deve ser realizado por entidade externa certificada.
+
+  Âmbito
+    → O que foi testado: sistemas, APIs, redes, aplicações, componentes
+      específicos. Ex: "API de pagamentos + infraestrutura cloud Tier-1".
+
+  Críticos Encontrados
+    → Número de vulnerabilidades críticas (CVSS ≥ 9.0 ou classificação interna
+      CRITICAL) descobertas pelo pen test.
+
+  Críticos Remediados
+    → Número de vulnerabilidades críticas já corrigidas. Se Encontrados >
+      Remediados, gera alerta CRÍTICO PEN_TEST_CRITICAL_OPEN.
+
+  Ref. Relatório Formal
+    → Referência ao relatório oficial do pen test. Documento obrigatório para
+      compliance DORA: data, âmbito, metodologia, findings, recomendações.
+
+  Status (PLANNED / IN_PROGRESS / COMPLETE / CANCELLED)
+    → Estado atual do pen test.
+
+--- SECÇÃO: Testes de Resiliência (BCP/DR) ---
+
+  Propósito: Documentar testes de Business Continuity e Disaster Recovery.
+  Art. 25 DORA exige testes de resiliência periódicos e documentados.
+  Se nenhum teste estiver registado, gera alerta WARNING P3_NO_RESILIENCE_TESTS.
+
+  Tipo de Teste * (identificador único no sprint)
+    → Tipo de teste realizado:
+      DR (Disaster Recovery)      – teste de recuperação após falha catastrófica
+      BCP (Business Continuity)   – teste de continuidade de operações degradadas
+      Failover                    – comutação automática para sistema de backup
+      RTO_MEASUREMENT             – medição do tempo efetivo de recuperação
+      CHAOS_ENGINEERING           – injeção controlada de falhas em produção/staging
+
+  Data
+    → Quando o teste foi realizado.
+
+  RTO Alvo (h)
+    → Recovery Time Objective definido: tempo máximo aceitável até ao sistema
+      estar operacional após falha. Ex: "4" = 4 horas.
+
+  RTO Atingido (h)
+    → Tempo efetivo de recuperação medido no teste. Se RTO Atingido > RTO Alvo,
+      o sistema não cumpre os objetivos de resiliência.
+
+  Resultado (PASS / FAIL / PARTIAL)
+    → Se o teste passou nos critérios de RTO/RPO definidos.
+
+  Notas
+    → Problemas encontrados, melhorias identificadas, itens de remediação.
+
+--- SECÇÃO: Simulações de Falha de Fornecedor (P4 – apenas se P4 ativo) ---
+
+  Propósito: Testar o impacto da falha de fornecedores TIC críticos.
+  Art. 25 DORA exige testes que incluam cenários de falha de terceiros.
+
+  Fornecedor *
+    → Nome do fornecedor cuja falha está a ser simulada.
+
+  Cenário
+    → O que foi simulado. Ex: "Indisponibilidade total do serviço de
+      autenticação durante 4 horas", "Latência de 10s no core banking".
+
+  Contingência ativada [checkbox]
+    → O plano de contingência (fallback, fornecedor alternativo, modo degradado)
+      foi efetivamente ativado e funcionou durante a simulação.
+
+  Resultado (PASS / FAIL / PARTIAL)
+    → Se a simulação demonstrou resiliência adequada à falha do fornecedor.
+
+
+================================================================================
+  T5 – OPERAÇÕES & INCIDENTES
+================================================================================
+
+Objetivo: Garantir conformidade DORA em produção: deploy seguro, monitorização
+contínua, gestão formal de incidentes e partilha de informação.
+Art. 17, 19, 20, 28 e 45 DORA.
+
+--- SECÇÃO: Checklist Operacional ---
+
+  Propósito: Verificações obrigatórias antes e após deploy em produção.
+  Cobre segurança do deploy, monitorização contínua e preparação para incidentes.
+
+  :: Deploy e Hardening ::
+
+  Segurança pré-deploy validada [checkbox]
+    → Todos os controlos de segurança foram verificados antes do deploy:
+      scans passaram, ADRs aprovados, pen test sem críticos em aberto.
+
+  Hardening do sistema concluído [checkbox]
+    → O sistema foi endurecido para produção: desativação de serviços
+      desnecessários, configuração de firewalls, remoção de defaults inseguros,
+      CIS Benchmark ou equivalente aplicado.
+
+  Segredos rotacionados [checkbox]
+    → Credenciais de produção foram rotacionadas antes do deploy: passwords
+      de base de dados, chaves API, certificados TLS, tokens de serviço.
+
+  Scan pós-deploy realizado [checkbox]
+    → Após o deploy foi executado scan de segurança no ambiente de produção
+      para confirmar que não foram introduzidas vulnerabilidades.
+
+  Plano de rollback documentado [checkbox]
+    → Existe procedimento documentado para reverter o deploy em caso de
+      problema crítico, incluindo tempo estimado de rollback.
+
+  :: Monitorização Contínua ::
+
+  SIEM ativo [checkbox]
+    → Security Information and Event Management system está a agregar e
+      correlacionar logs de segurança em tempo real. Base para deteção de
+      incidentes (Art. 17 DORA).
+
+  Regras de monitorização de infra definidas [checkbox]
+    → Alertas e dashboards de monitorização de infraestrutura estão
+      configurados: CPU, memória, latência, disponibilidade, erros.
+
+  Feeds de Threat Intelligence ativos [checkbox]
+    → O sistema consome feeds de inteligência de ameaças para deteção
+      proativa (ex: IPs maliciosos, IOCs, TTP conhecidos). Art. 8 DORA.
+
+  Avaliação contínua de vulnerabilidades ativa [checkbox]
+    → Existe processo de scan contínuo ou periódico de vulnerabilidades
+      em produção (ex: scan semanal, agente de runtime protection).
+
+  :: Gestão de Incidentes (P2) ::
+
+  Plano de Resposta a Incidentes ativo [checkbox]
+    → O IRP está operacional em produção: equipa de resposta designada,
+      runbooks atualizados, canais de comunicação testados. Art. 17 DORA.
+
+  Notificação 4h documentada [checkbox]
+    → O procedimento de notificação à autoridade competente dentro de 4 horas
+      está documentado. Art. 19 DORA exige notificação inicial dentro de 4h
+      para incidentes graves.
+
+  Notificação 4h testada [checkbox]
+    → O procedimento de notificação foi testado (ex: simulação, exercício).
+      Garantia de que o processo funciona quando necessário.
+
+  Classificação de incidentes definida [checkbox]
+    → Existe critério formal para classificar incidentes como MAJOR/MINOR/CRITICAL.
+      Art. 18 DORA exige critérios de classificação documentados.
+
+  Contactos das autoridades identificados [checkbox]
+    → Estão identificados e atualizados os contactos das autoridades competentes
+      para notificação: BdP, CMVM, ASF, ENISA conforme aplicável.
+
+  Processo de post-mortem definido [checkbox]
+    → Existe processo formal de análise pós-incidente: template, prazo,
+      responsáveis, report obrigatório para incidentes graves. Art. 17 DORA.
+
+  Notas
+    → Observações operacionais, incidentes passados relevantes, melhorias
+      identificadas.
+
+--- SECÇÃO: Incidentes ICT (P2 – apenas se P2 ativo) ---
+
+  Propósito: Registo formal de incidentes de segurança ocorridos no sprint.
+  Art. 17-20 DORA exigem classificação, notificação e post-mortem de incidentes.
+  Incidentes não notificados em 4h geram alerta CRÍTICO INCIDENT_4H_VIOLATION.
+
+  Ref * (ex: INC-001)
+    → Identificador único do incidente. Deve ser único no sprint.
+
+  Classificação
+    → Severidade/tipo do incidente conforme critérios internos.
+      Ex: "MAJOR", "MINOR", "CRITICAL", "P1", "SEV-2".
+
+  Detetado em *
+    → Data e hora exata da deteção do incidente. Base para cálculo de timelines
+      regulatórias (tempo até notificação, tempo de resolução).
+
+  Notificado em
+    → Data e hora da notificação à autoridade competente. Se > 4h após deteção,
+      gera alerta CRÍTICO. Para incidentes menores pode não ser aplicável.
+
+  Notificação dentro de 4h [checkbox]
+    → A autoridade foi notificada dentro das 4 horas após classificação como
+      incidente grave. Requisito Art. 19(4) DORA. Incumprimento = sanção regulatória.
+
+  Autoridade notificada [checkbox]
+    → Confirma que a autoridade competente (BdP, CMVM, etc.) foi efetivamente
+      notificada. Se "Notif. dentro de 4h" = Sim, este deve também estar marcado.
+
+  Post-mortem concluído [checkbox]
+    → A análise de causa raiz foi concluída e documentada. Art. 17 DORA exige
+      relatório final de incidente para casos graves com causa raiz e ações.
+
+  Status (OPEN / RESOLVED / CLOSED)
+    → OPEN     – incidente em curso ou remediação pendente
+      RESOLVED – causa raiz identificada e mitigada
+      CLOSED   – post-mortem concluído, registo arquivado
+
+--- SECÇÃO: Avaliações de Fornecedores (P4 – apenas se P4 ativo) ---
+
+  Propósito: Monitorização contínua de fornecedores TIC em produção.
+  Art. 28 DORA exige supervisão contínua do desempenho e conformidade dos
+  fornecedores TIC críticos.
+
+  Fornecedor *
+    → Nome do fornecedor TIC sendo avaliado.
+
+  Data da Última Revisão
+    → Quando foi realizada a última avaliação formal deste fornecedor.
+
+  Nº Incidentes
+    → Número de incidentes causados ou envolvendo este fornecedor no período.
+      Métrica para avaliação de risco do fornecedor.
+
+  SLA cumprido [checkbox]
+    → O fornecedor cumpriu os SLAs acordados no T2 durante este sprint/período.
+
+  Status da Avaliação (COMPLIANT / NON_COMPLIANT / AT_RISK / PENDING)
+    → COMPLIANT     – fornecedor cumpre todos os requisitos DORA e contratuais
+      NON_COMPLIANT – fornecedor tem incumprimentos identificados (pode exigir
+                      plano de remediação ou mudança de fornecedor)
+      AT_RISK       – fornecedor mostra sinais de deterioração
+      PENDING       – avaliação em curso
+
+--- SECÇÃO: Acordos de Partilha de Informação (P5 – apenas se P5 ativo) ---
+
+  Propósito: Documentar participação em acordos de partilha de informação
+  sobre ameaças cibernéticas. Art. 45 DORA incentiva partilha voluntária.
+
+  Nome do Acordo *
+    → Nome do acordo ou organização de partilha. Ex: "FS-ISAC", "ISAC Banca PT",
+      "Acordo Bilateral Natixis-BNP", "MoU com ENISA".
+
+  Partilha de IOCs ativa [checkbox]
+    → O projeto partilha ativamente Indicators of Compromise (IPs maliciosos,
+      hashes de malware, domínios suspeitos) com os parceiros do acordo.
+
+  Threat Intelligence incorporada [checkbox]
+    → A inteligência de ameaças recebida dos parceiros é incorporada nos
+      sistemas de deteção (SIEM, firewalls, IDS/IPS) do projeto.
+
+  Reporte às autoridades ativo [checkbox]
+    → Os incidentes relevantes são reportados às autoridades competentes
+      conforme os termos do acordo e obrigações DORA Art. 19.
+
+
+================================================================================
+  MOTOR DE ALERTAS — REGRAS AUTOMÁTICAS
+================================================================================
+
+O sistema gera alertas automaticamente ao guardar cada template.
+Alertas são resolvidos automaticamente quando a condição deixa de existir.
+
+  T1 / P2 – CRITICAL – P2_IMPACT_NOT_VERIFIED
+    → Disparado quando: "Impacto DORA verificado" = Não
+    → Resolve quando: checkbox marcado e T1 guardado
+
+  T1 / P2 – WARNING – P2_IRP_INCOMPLETE
+    → Disparado quando: "Status Plano de Resposta" ≠ COMPLETE
+    → Resolve quando: status alterado para COMPLETE e T1 guardado
+
+  T1 / P4 – WARNING – SUPPLIER_PENDING_[id]
+    → Disparado quando: fornecedor tem contrato em estado PENDENTE
+    → Resolve quando: contrato atualizado para outro estado
+
+  T2 / P1 – CRITICAL – ADR_APPROVAL_MISSING
+    → Disparado quando: existem ADRs sem aprovação do Risk Manager
+    → Resolve quando: todos os ADRs são aprovados
+
+  T2 / P2 – WARNING – P2_NO_SUPPLIER_SLA
+    → Disparado quando: sem SLAs registados, ou nenhum com status COLLECTED
+    → Resolve quando: pelo menos um SLA com status COLLECTED
+
+  T3 / P1 – CRITICAL – CVSS_HIGH_UNRESOLVED
+    → Disparado quando: pipeline scan com vulnerabilidades CVSS ≥ 7.0 > 0
+    → Resolve quando: critical_vulns = 0 nos scans
+
+  T3 / P1 – WARNING – PIPELINE_SCAN_MISSING
+    → Disparado quando: nenhum scan registado no sprint
+    → Resolve quando: pelo menos um scan adicionado
+
+  T4 / P3 – CRITICAL – TLPT_NOT_SCHEDULED
+    → Disparado quando: TLPT aplicável mas não agendado/concluído
+    → Resolve quando: "TLPT concluído ou agendado" marcado
+
+  T4 / P3 – WARNING – P3_NO_RESILIENCE_TESTS
+    → Disparado quando: nenhum teste de resiliência (BCP/DR) registado
+    → Resolve quando: pelo menos um teste de resiliência adicionado
+
+  T4 / P3 – CRITICAL – PEN_TEST_CRITICAL_OPEN_[id]
+    → Disparado quando: pen test com críticos encontrados > críticos remediados
+    → Resolve quando: todos os críticos remediados
+
+  T5 / P2 – CRITICAL – INCIDENT_4H_VIOLATION_[id]
+    → Disparado quando: incidente sem notificação dentro de 4 horas
+    → Resolve quando: "Notificação dentro de 4h" marcada e T5 guardado
+
+
+================================================================================
+  FLUXO DE APROVAÇÃO
+================================================================================
+
+Cada fase tem um botão "Fechar Sprint" que a marca como COMPLETE.
+A sequência obrigatória é:
+
+  T0 → Guardar respostas → Aprovar T0 (ativa pilares)
+  T1 → Preencher dados + stories + riscos → Fechar Sprint T1
+  T2 → Preencher checklist + ameaças + ADRs (todos aprovados) → Fechar Sprint T2
+  T3 → Preencher checklist + scans → Fechar Sprint T3
+  T4 → Preencher testes → Fechar Sprint T4
+  T5 → Preencher checklist + incidentes → Fechar Sprint T5
+
+Cada fase desbloqueada só depois da anterior estar COMPLETE.
+Múltiplos sprints (Sprint 1, Sprint 2, ...) podem existir por fase,
+representando iterações do projeto ao longo do tempo.
+
+
+================================================================================
+  Gerado para dissertação DORA Compliance Dashboard · Natixis · 2025-2026
+================================================================================
