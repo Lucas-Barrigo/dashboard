@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from database import get_db
-from models import Template, T4Data, T4SecurityTest, T4PenTest, T4ResilienceTest, T4SupplierFailureSim
+from models import Template, T4Data, T4SecurityTest, T4PenTest, T4ResilienceTest, T4SupplierFailureSim, T4CrossSectorExercise
 from schemas import (
     TemplateRead, TemplateApprove,
     T4DataCreate, T4DataRead,
@@ -12,6 +12,7 @@ from schemas import (
     T4PenTestCreate, T4PenTestRead,
     T4ResilienceTestCreate, T4ResilienceTestRead,
     T4SupplierFailureSimCreate, T4SupplierFailureSimRead,
+    T4CrossSectorExerciseCreate, T4CrossSectorExerciseRead,
 )
 from routers._helpers import get_project_or_404, get_template_or_404, after_save
 
@@ -219,5 +220,38 @@ def delete_sim(project_id: int, sprint: int, sim_id: int, db: Session = Depends(
     if not sim or sim.template_id != t.id:
         raise HTTPException(404, "Simulação não encontrada")
     db.delete(sim)
+    db.commit()
+    after_save(db, t, project)
+
+
+# ------------------------------------------------------------------
+# Exercícios Cross-Sector (Art. 49)
+# ------------------------------------------------------------------
+
+@router.get("/{sprint}/cross-sector", response_model=List[T4CrossSectorExerciseRead])
+def list_exercises(project_id: int, sprint: int, db: Session = Depends(get_db)):
+    return _t(project_id, sprint, db).t4_cross_sector_exercises
+
+
+@router.post("/{sprint}/cross-sector", response_model=T4CrossSectorExerciseRead, status_code=201)
+def add_exercise(project_id: int, sprint: int, body: T4CrossSectorExerciseCreate, db: Session = Depends(get_db)):
+    project = get_project_or_404(project_id, db)
+    t = _t(project_id, sprint, db)
+    ex = T4CrossSectorExercise(template_id=t.id, **body.model_dump())
+    db.add(ex)
+    db.commit()
+    after_save(db, t, project)
+    db.refresh(ex)
+    return ex
+
+
+@router.delete("/{sprint}/cross-sector/{ex_id}", status_code=204)
+def delete_exercise(project_id: int, sprint: int, ex_id: int, db: Session = Depends(get_db)):
+    project = get_project_or_404(project_id, db)
+    t = _t(project_id, sprint, db)
+    ex = db.get(T4CrossSectorExercise, ex_id)
+    if not ex or ex.template_id != t.id:
+        raise HTTPException(404, "Exercício não encontrado")
+    db.delete(ex)
     db.commit()
     after_save(db, t, project)

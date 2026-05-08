@@ -73,6 +73,18 @@ def _t1(db: Session, p: Project, t: Template):
         else:
             _resolve(db, p.id, t.id, "P2_IRP_INCOMPLETE")
 
+    # Riscos: OPEN sem mitigação = WARNING/CRITICAL; OPEN com mitigação = sem alerta
+    for r in t.t1_risks:
+        key = f"RISK_OPEN_{r.id}"
+        if r.status in ("MITIGATED", "ACCEPTED", "CLOSED"):
+            _resolve(db, p.id, t.id, key)
+        elif r.status == "OPEN" and r.mitigation:
+            _resolve(db, p.id, t.id, key)
+        elif r.status == "OPEN" and not r.mitigation:
+            severity = "CRITICAL" if r.impact == "HIGH" else "WARNING"
+            _raise_alert(db, p.id, t.id, r.pillar, severity, key,
+                         f"Risco '{r.risk_ref}' ({r.impact} impacto, pilar {r.pillar}) em aberto sem mitigação definida — requer tratamento (Art. 6 DORA).")
+
 
 def _t2(db: Session, p: Project, t: Template):
     # P1: unapproved ADRs
@@ -149,12 +161,26 @@ def _t4(db: Session, p: Project, t: Template):
 
 
 def _t5(db: Session, p: Project, t: Template):
-    if not p.p2_active:
-        return
-    for inc in t.t5_incidents:
-        key = f"INCIDENT_4H_VIOLATION_{inc.id}"
-        if not inc.notification_within_4h:
-            _raise_alert(db, p.id, t.id, "P2", "CRITICAL", key,
-                         f"Incidente '{inc.incident_ref}' não notificado à autoridade dentro de 4 horas (Art. 19).")
-        else:
-            _resolve(db, p.id, t.id, key)
+    if p.p2_active:
+        for inc in t.t5_incidents:
+            key = f"INCIDENT_4H_VIOLATION_{inc.id}"
+            if not inc.notification_within_4h:
+                _raise_alert(db, p.id, t.id, "P2", "CRITICAL", key,
+                             f"Incidente '{inc.incident_ref}' não notificado à autoridade dentro de 4 horas (Art. 19).")
+            else:
+                _resolve(db, p.id, t.id, key)
+
+    # P4: fornecedores do T1 sem avaliação no T5
+    if p.p4_active:
+        t1_tmpl = db.query(Template).filter_by(
+            project_id=p.id, type="T1", sprint_number=t.sprint_number
+        ).first()
+        if t1_tmpl:
+            evaluated = {e.supplier_name.strip().lower() for e in t.t5_supplier_evaluations}
+            for sup in t1_tmpl.t1_suppliers:
+                key = f"T5_SUPPLIER_NOT_EVALUATED_{sup.id}"
+                if sup.supplier_name.strip().lower() not in evaluated:
+                    _raise_alert(db, p.id, t.id, "P4", "WARNING", key,
+                                 f"Fornecedor '{sup.supplier_name}' (T1) sem avaliação operacional no T5 — requisito Art. 28 DORA.")
+                else:
+                    _resolve(db, p.id, t.id, key)

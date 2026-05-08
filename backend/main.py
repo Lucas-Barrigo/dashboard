@@ -2,10 +2,33 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import engine, Base, SessionLocal
-from routers import projects, t0, t1, t2, t3, t4, t5, dashboard
+from routers import projects, t0, t1, t2, t3, t4, t5, dashboard, section_na
 from models import PillarQuestion
 
 Base.metadata.create_all(bind=engine)
+
+def _migrate():
+    from sqlalchemy import text
+    _cols = [
+        ("t3_data", "systems_capacity_assessed",  "BOOLEAN NOT NULL DEFAULT 0"),
+        ("t3_data", "patches_applied_or_planned",  "BOOLEAN NOT NULL DEFAULT 0"),
+        ("t4_data", "tlpt_tester_certified",       "BOOLEAN NOT NULL DEFAULT 0"),
+        ("t4_data", "tlpt_tester_insured",         "BOOLEAN NOT NULL DEFAULT 0"),
+        ("t5_data", "systems_patches_current",     "BOOLEAN NOT NULL DEFAULT 0"),
+        ("t5_data", "backup_restore_tested",       "BOOLEAN NOT NULL DEFAULT 0"),
+        ("t5_data", "backup_storage_segregated",   "BOOLEAN NOT NULL DEFAULT 0"),
+        ("t5_data", "crisis_comms_plan_tested",    "BOOLEAN NOT NULL DEFAULT 0"),
+        ("t1_risks", "acceptance_justification",   "TEXT"),
+    ]
+    with engine.connect() as conn:
+        for table, col, typedef in _cols:
+            try:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {typedef}"))
+            except Exception:
+                pass
+        conn.commit()
+
+_migrate()
 
 _SEED_QUESTIONS = [
     ("P1_Q1","P1","O sistema suporta funções críticas ou importantes da instituição?",1),
@@ -59,6 +82,7 @@ app.include_router(t3.router)
 app.include_router(t4.router)
 app.include_router(t5.router)
 app.include_router(dashboard.router)
+app.include_router(section_na.router)
 
 
 @app.get("/health", tags=["meta"])

@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Trash2, Plus } from 'lucide-react'
-import { t1Api, projectsApi, type Project, type Template, type T1Data, type T1UserStory, type T1Risk, type T1Supplier } from '../../api'
+import { t1Api, projectsApi, sectionNaApi, type Project, type Template, type T1Data, type T1UserStory, type T1Risk, type T1Supplier, type SectionExclusion } from '../../api'
 import {
   Card, CardHeader, Button, Input, Select, Textarea, FormField,
   Checkbox, Badge, Modal, Table, Td, Spinner, Empty,
 } from '../../components/ui'
 import { Breadcrumbs } from '../../components/Layout'
 import SprintSelector from '../../components/SprintSelector'
+import SectionNA from '../../components/SectionNA'
 
 export default function T1Page() {
   const { projectId } = useParams<{ projectId: string }>()
@@ -52,6 +53,7 @@ function T1Content({ pid, sprint, template, locked, onRefresh, p4Active }: {
   const [stories, setStories] = useState<T1UserStory[]>([])
   const [risks, setRisks] = useState<T1Risk[]>([])
   const [suppliers, setSuppliers] = useState<T1Supplier[]>([])
+  const [exclusions, setExclusions] = useState<SectionExclusion[]>([])
   const [saving, setSaving] = useState(false)
   const [approveModal, setApproveModal] = useState(false)
   const [approver, setApprover] = useState('')
@@ -60,15 +62,17 @@ function T1Content({ pid, sprint, template, locked, onRefresh, p4Active }: {
   const [supplierModal, setSupplierModal] = useState(false)
 
   const load = async () => {
-    const [d, s, r, sup] = await Promise.allSettled([
+    const [d, s, r, sup, excl] = await Promise.allSettled([
       t1Api.getData(pid, sprint), t1Api.stories(pid, sprint),
       t1Api.risks(pid, sprint), t1Api.suppliers(pid, sprint),
+      sectionNaApi.list(pid, 'T1', sprint),
     ])
     if (d.status === 'fulfilled') setData(d.value)
     else setData({ template_id: 0, incident_response_plan_status: null, dora_impact_verified: false, notes: null })
     if (s.status === 'fulfilled') setStories(s.value)
     if (r.status === 'fulfilled') setRisks(r.value)
     if (sup.status === 'fulfilled') setSuppliers(sup.value)
+    if (excl.status === 'fulfilled') setExclusions(excl.value)
   }
   useEffect(() => { load() }, [pid, sprint])
 
@@ -117,8 +121,9 @@ function T1Content({ pid, sprint, template, locked, onRefresh, p4Active }: {
       </Card>
 
       {/* User Stories */}
-      <Card>
-        <CardHeader title="User Stories" action={!locked && <Button size="sm" onClick={() => setStoryModal(true)}><Plus size={14} /> Adicionar</Button>} />
+      <SectionNA pid={pid} templateType="T1" sprint={sprint} sectionKey="user_stories"
+        title="User Stories" action={!locked && <Button size="sm" onClick={() => setStoryModal(true)}><Plus size={14} /> Adicionar</Button>}
+        exclusion={exclusions.find(e => e.section_key === 'user_stories') ?? null} onChanged={load}>
         {stories.length === 0 ? <Empty message="Nenhuma user story adicionada." /> : (
           <Table headers={['Ref', 'Descrição', 'Risco ICT', 'Prod?', 'C.I.A', '']}>
             {stories.map(s => (
@@ -135,32 +140,51 @@ function T1Content({ pid, sprint, template, locked, onRefresh, p4Active }: {
             ))}
           </Table>
         )}
-      </Card>
+      </SectionNA>
 
       {/* Risks */}
-      <Card>
-        <CardHeader title="Registo de Riscos" action={!locked && <Button size="sm" onClick={() => setRiskModal(true)}><Plus size={14} /> Adicionar</Button>} />
+      <SectionNA pid={pid} templateType="T1" sprint={sprint} sectionKey="risk_register"
+        title="Registo de Riscos" action={!locked && <Button size="sm" onClick={() => setRiskModal(true)}><Plus size={14} /> Adicionar</Button>}
+        exclusion={exclusions.find(e => e.section_key === 'risk_register') ?? null} onChanged={load}>
         {risks.length === 0 ? <Empty message="Nenhum risco registado." /> : (
-          <Table headers={['Ref', 'Descrição', 'Pilar', 'Impacto', 'Prob.', 'Status', '']}>
-            {risks.map(r => (
-              <tr key={r.id}>
-                <Td className="font-mono text-xs">{r.risk_ref}</Td>
-                <Td>{r.description}</Td>
-                <Td className="text-xs">{r.pillar}</Td>
-                <Td><Badge label={r.impact} /></Td>
-                <Td><Badge label={r.probability} /></Td>
-                <Td><Badge label={r.status} /></Td>
-                <Td>{!locked && <button onClick={async () => { await t1Api.deleteRisk(pid, sprint, r.id); load() }} className="text-gray-300 hover:text-red-500"><Trash2 size={14} /></button>}</Td>
-              </tr>
-            ))}
+          <Table headers={['Ref', 'Descrição', 'Pilar', 'Impacto', 'Prob.', 'Estado', 'Mitigação / Nota', '']}>
+            {risks.map(r => {
+              const isOpenNoMit = r.status === 'OPEN' && !r.mitigation
+              const isOpenWithMit = r.status === 'OPEN' && !!r.mitigation
+              const rowClass = isOpenNoMit && r.impact === 'HIGH'
+                ? 'bg-red-50'
+                : isOpenNoMit
+                ? 'bg-yellow-50'
+                : ''
+              return (
+                <tr key={r.id} className={rowClass}>
+                  <Td className="font-mono text-xs">{r.risk_ref}</Td>
+                  <Td>{r.description}</Td>
+                  <Td className="text-xs">{r.pillar}</Td>
+                  <Td><Badge label={r.impact} /></Td>
+                  <Td><Badge label={r.probability} /></Td>
+                  <Td>
+                    {r.status === 'OPEN' && !r.mitigation && <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-700">⚠ OPEN</span>}
+                    {r.status === 'OPEN' && r.mitigation && <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-600">ℹ OPEN (em mitigação)</span>}
+                    {r.status === 'MITIGATED' && <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">✓ MITIGATED</span>}
+                    {r.status === 'ACCEPTED' && <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500">✓ ACCEPTED</span>}
+                  </Td>
+                  <Td className="text-xs text-gray-500 max-w-[180px] truncate">
+                    {r.status === 'ACCEPTED' ? (r.acceptance_justification ?? '–') : (r.mitigation ?? '–')}
+                  </Td>
+                  <Td>{!locked && <button onClick={async () => { await t1Api.deleteRisk(pid, sprint, r.id); load() }} className="text-gray-300 hover:text-red-500"><Trash2 size={14} /></button>}</Td>
+                </tr>
+              )
+            })}
           </Table>
         )}
-      </Card>
+      </SectionNA>
 
       {/* Suppliers — P4 only */}
       {p4Active ? (
-        <Card>
-          <CardHeader title="Fornecedores" action={!locked && <Button size="sm" onClick={() => setSupplierModal(true)}><Plus size={14} /> Adicionar</Button>} />
+        <SectionNA pid={pid} templateType="T1" sprint={sprint} sectionKey="third_party"
+          title="Fornecedores" action={!locked && <Button size="sm" onClick={() => setSupplierModal(true)}><Plus size={14} /> Adicionar</Button>}
+          exclusion={exclusions.find(e => e.section_key === 'third_party') ?? null} onChanged={load}>
           {suppliers.length === 0 ? <Empty message="Nenhum fornecedor registado." /> : (
             <Table headers={['Fornecedor', 'Serviço', 'Contrato', 'Acesso Crítico', '']}>
               {suppliers.map(s => (
@@ -174,7 +198,7 @@ function T1Content({ pid, sprint, template, locked, onRefresh, p4Active }: {
               ))}
             </Table>
           )}
-        </Card>
+        </SectionNA>
       ) : <div className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-3 text-sm text-gray-400">P4 – Third-Party Risk não ativo (N/A)</div>}
 
       {storyModal && <StoryModal pid={pid} sprint={sprint} existingRefs={stories.map(s => s.story_ref)} onClose={() => { setStoryModal(false); load() }} />}
@@ -237,7 +261,7 @@ function StoryModal({ pid, sprint, existingRefs, onClose }: { pid: number; sprin
 }
 
 function RiskModal({ pid, sprint, existingRefs, onClose }: { pid: number; sprint: number; existingRefs: string[]; onClose: () => void }) {
-  const [form, setForm] = useState({ risk_ref: '', description: '', probability: 'MEDIUM', impact: 'MEDIUM', pillar: 'P1', status: 'OPEN', mitigation: '' })
+  const [form, setForm] = useState({ risk_ref: '', description: '', probability: 'MEDIUM', impact: 'MEDIUM', pillar: 'P1', status: 'OPEN', mitigation: '', acceptance_justification: '' })
   const dupRef = form.risk_ref.trim() !== '' && existingRefs.some(r => r.toLowerCase() === form.risk_ref.trim().toLowerCase())
   return (
     <Modal title="Novo Risco" onClose={onClose}>
@@ -272,6 +296,13 @@ function RiskModal({ pid, sprint, existingRefs, onClose }: { pid: number; sprint
           </FormField>
         </div>
         <FormField label="Mitigação"><Textarea value={form.mitigation} onChange={e => setForm(f => ({ ...f, mitigation: e.target.value }))} /></FormField>
+        {form.status === 'ACCEPTED' && (
+          <FormField label="Justificação de Aceitação Formal *">
+            <Textarea value={form.acceptance_justification}
+              onChange={e => setForm(f => ({ ...f, acceptance_justification: e.target.value }))}
+              placeholder="Descreva a justificação formal para aceitação deste risco (ex: decisão de órgão de gestão, custo vs impacto, compensating controls)." />
+          </FormField>
+        )}
         <div className="flex justify-end gap-2 pt-1">
           <Button variant="secondary" onClick={onClose}>Cancelar</Button>
           <Button onClick={async () => {
@@ -281,8 +312,9 @@ function RiskModal({ pid, sprint, existingRefs, onClose }: { pid: number; sprint
               impact: form.impact as T1Risk['impact'],
               pillar: form.pillar, status: form.status as T1Risk['status'],
               mitigation: form.mitigation || null,
+              acceptance_justification: form.status === 'ACCEPTED' ? (form.acceptance_justification || null) : null,
             }); onClose()
-          }} disabled={!form.risk_ref || !form.description || dupRef}>Guardar</Button>
+          }} disabled={!form.risk_ref || !form.description || dupRef || (form.status === 'ACCEPTED' && !form.acceptance_justification.trim())}>Guardar</Button>
         </div>
       </div>
     </Modal>

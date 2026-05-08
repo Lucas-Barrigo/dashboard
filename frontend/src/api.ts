@@ -78,6 +78,14 @@ export interface Evidence {
   sprint_number: number | null
 }
 
+export interface SectionExclusion {
+  id: number
+  template_id: number
+  section_key: string
+  justification: string
+  marked_at: string
+}
+
 export interface DashboardData {
   project: Project
   compliance_scores: ComplianceScore[]
@@ -141,6 +149,7 @@ export interface T1Risk {
   pillar: string
   mitigation: string | null
   status: 'OPEN' | 'MITIGATED' | 'ACCEPTED'
+  acceptance_justification: string | null
 }
 
 export interface T1Supplier {
@@ -175,7 +184,6 @@ export interface T2Threat {
   affected_asset: string | null
   risk_level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
   mitigation: string | null
-  test_ref: string | null
 }
 
 export interface T2ADR {
@@ -215,6 +223,8 @@ export interface T3Data {
   tamper_protection_active: boolean
   dependency_inventory_updated: boolean
   supplier_access_monitored: boolean
+  systems_capacity_assessed: boolean
+  patches_applied_or_planned: boolean
   notes: string | null
 }
 
@@ -247,10 +257,23 @@ export interface T4Data {
   tlpt_applicable: boolean
   tlpt_completed_or_scheduled: boolean
   tlpt_date: string | null
+  tlpt_tester_certified: boolean
+  tlpt_tester_insured: boolean
   audit_trail_integrity_verified: boolean
   incident_response_tested: boolean
   risk_assessments_validated: boolean
   notes: string | null
+}
+
+export interface T4CrossSectorExercise {
+  id: number
+  template_id: number
+  exercise_name: string
+  exercise_date: string | null
+  organized_by: string | null
+  participation_type: 'PARTICIPANT' | 'OBSERVER' | 'ORGANIZER'
+  scenario_type: string | null
+  outcome: string | null
 }
 
 export interface T4SecurityTest {
@@ -313,6 +336,10 @@ export interface T5Data {
   incident_classification_defined: boolean
   authority_contacts_identified: boolean
   post_mortem_process_defined: boolean
+  systems_patches_current: boolean
+  backup_restore_tested: boolean
+  backup_storage_segregated: boolean
+  crisis_comms_plan_tested: boolean
   notes: string | null
 }
 
@@ -476,6 +503,21 @@ export const t4Api = {
     api.post<T4SupplierFailureSim>(`/projects/${pid}/t4/${sprint}/supplier-sims`, data).then(r => r.data),
   deleteSupplierSim: (pid: number, sprint: number, id: number) =>
     api.delete(`/projects/${pid}/t4/${sprint}/supplier-sims/${id}`),
+  crossSectorExercises: (pid: number, sprint: number) =>
+    api.get<T4CrossSectorExercise[]>(`/projects/${pid}/t4/${sprint}/cross-sector`).then(r => r.data),
+  addCrossSectorExercise: (pid: number, sprint: number, data: Partial<T4CrossSectorExercise>) =>
+    api.post<T4CrossSectorExercise>(`/projects/${pid}/t4/${sprint}/cross-sector`, data).then(r => r.data),
+  deleteCrossSectorExercise: (pid: number, sprint: number, id: number) =>
+    api.delete(`/projects/${pid}/t4/${sprint}/cross-sector/${id}`),
+}
+
+export const sectionNaApi = {
+  list: (pid: number, type: string, sprint: number): Promise<SectionExclusion[]> =>
+    api.get(`/projects/${pid}/templates/${type}/${sprint}/section-na`).then(r => r.data),
+  add: (pid: number, type: string, sprint: number, body: { section_key: string; justification: string }): Promise<SectionExclusion> =>
+    api.post(`/projects/${pid}/templates/${type}/${sprint}/section-na`, body).then(r => r.data),
+  remove: (pid: number, type: string, sprint: number, sectionKey: string): Promise<void> =>
+    api.delete(`/projects/${pid}/templates/${type}/${sprint}/section-na/${sectionKey}`).then(r => r.data),
 }
 
 export const t5Api = {

@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Trash2, Plus, CheckCircle } from 'lucide-react'
-import { t2Api, projectsApi, type Project, type Template, type T2Data, type T2Threat, type T2ADR, type T2SupplierSLA } from '../../api'
+import { t2Api, projectsApi, sectionNaApi, type Project, type Template, type T2Data, type T2Threat, type T2ADR, type T2SupplierSLA, type SectionExclusion } from '../../api'
 import {
   Card, CardHeader, Button, Input, Select, Textarea, FormField,
   Checkbox, Badge, Modal, Table, Td, Spinner, Empty,
 } from '../../components/ui'
 import { Breadcrumbs } from '../../components/Layout'
 import SprintSelector from '../../components/SprintSelector'
+import SectionNA from '../../components/SectionNA'
 
 export default function T2Page() {
   const { projectId } = useParams<{ projectId: string }>()
@@ -49,6 +50,7 @@ function T2Content({ pid, sprint, template, locked, onRefresh, p4Active }: { pid
   const [threats, setThreats] = useState<T2Threat[]>([])
   const [adrs, setAdrs] = useState<T2ADR[]>([])
   const [slas, setSlas] = useState<T2SupplierSLA[]>([])
+  const [exclusions, setExclusions] = useState<SectionExclusion[]>([])
   const [saving, setSaving] = useState(false)
   const [approveModal, setApproveModal] = useState(false)
   const [approver, setApprover] = useState('')
@@ -59,14 +61,16 @@ function T2Content({ pid, sprint, template, locked, onRefresh, p4Active }: { pid
   const [adrApprover, setAdrApprover] = useState('')
 
   const load = async () => {
-    const [d, t, a, s] = await Promise.allSettled([
+    const [d, t, a, s, excl] = await Promise.allSettled([
       t2Api.getData(pid, sprint), t2Api.threats(pid, sprint), t2Api.adrs(pid, sprint), t2Api.slas(pid, sprint),
+      sectionNaApi.list(pid, 'T2', sprint),
     ])
     if (d.status === 'fulfilled') setData(d.value)
     else setData({ template_id: 0, zero_trust_mutual_auth: false, zero_trust_segmentation: false, zero_trust_least_privilege: false, circuit_breakers: false, failover_configured: false, drp_documented: false, redundancy_configured: false, backup_strategy_defined: false, notes: null })
     if (t.status === 'fulfilled') setThreats(t.value)
     if (a.status === 'fulfilled') setAdrs(a.value)
     if (s.status === 'fulfilled') setSlas(s.value)
+    if (excl.status === 'fulfilled') setExclusions(excl.value)
   }
   useEffect(() => { load() }, [pid, sprint])
 
@@ -127,10 +131,11 @@ function T2Content({ pid, sprint, template, locked, onRefresh, p4Active }: { pid
         </div>
       </Card>
 
-      <Card>
-        <CardHeader title="Threat Model STRIDE" action={!locked && <Button size="sm" onClick={() => setThreatModal(true)}><Plus size={14} /> Adicionar</Button>} />
+      <SectionNA pid={pid} templateType="T2" sprint={sprint} sectionKey="threat_model"
+        title="Threat Model STRIDE" action={!locked && <Button size="sm" onClick={() => setThreatModal(true)}><Plus size={14} /> Adicionar</Button>}
+        exclusion={exclusions.find(e => e.section_key === 'threat_model') ?? null} onChanged={load}>
         {threats.length === 0 ? <Empty message="Nenhuma ameaça registada." /> : (
-          <Table headers={['Ref', 'STRIDE', 'Descrição', 'Ativo Afetado', 'Risco', 'Ref. Teste', '']}>
+          <Table headers={['Ref', 'STRIDE', 'Descrição', 'Ativo Afetado', 'Risco', 'Mitigação', '']}>
             {threats.map(t => (
               <tr key={t.id}>
                 <Td className="font-mono text-xs">{t.threat_ref}</Td>
@@ -138,16 +143,17 @@ function T2Content({ pid, sprint, template, locked, onRefresh, p4Active }: { pid
                 <Td>{t.description}</Td>
                 <Td className="text-xs text-gray-500">{t.affected_asset ?? '–'}</Td>
                 <Td><Badge label={t.risk_level} /></Td>
-                <Td className="text-xs text-gray-400">{t.test_ref ?? '–'}</Td>
+                <Td className="text-xs text-gray-500 max-w-[200px] truncate">{t.mitigation ?? '–'}</Td>
                 <Td>{!locked && <button onClick={async () => { await t2Api.deleteThreat(pid, sprint, t.id); load() }} className="text-gray-300 hover:text-red-500"><Trash2 size={14} /></button>}</Td>
               </tr>
             ))}
           </Table>
         )}
-      </Card>
+      </SectionNA>
 
-      <Card>
-        <CardHeader title="ADRs – Architectural Decision Records" action={!locked && <Button size="sm" onClick={() => setAdrModal(true)}><Plus size={14} /> Adicionar</Button>} />
+      <SectionNA pid={pid} templateType="T2" sprint={sprint} sectionKey="adrs"
+        title="ADRs – Architectural Decision Records" action={!locked && <Button size="sm" onClick={() => setAdrModal(true)}><Plus size={14} /> Adicionar</Button>}
+        exclusion={exclusions.find(e => e.section_key === 'adrs') ?? null} onChanged={load}>
         {adrs.length === 0 ? <Empty message="Nenhum ADR registado." /> : (
           <Table headers={['Ref', 'Decisão', 'Risco DORA', 'Risk Mgr', 'Data', '']}>
             {adrs.map(a => (
@@ -167,11 +173,12 @@ function T2Content({ pid, sprint, template, locked, onRefresh, p4Active }: { pid
             ))}
           </Table>
         )}
-      </Card>
+      </SectionNA>
 
       {p4Active ? (
-        <Card>
-          <CardHeader title="SLAs de Fornecedores" action={!locked && <Button size="sm" onClick={() => setSlaModal(true)}><Plus size={14} /> Adicionar</Button>} />
+        <SectionNA pid={pid} templateType="T2" sprint={sprint} sectionKey="supplier_slas"
+          title="SLAs de Fornecedores" action={!locked && <Button size="sm" onClick={() => setSlaModal(true)}><Plus size={14} /> Adicionar</Button>}
+          exclusion={exclusions.find(e => e.section_key === 'supplier_slas') ?? null} onChanged={load}>
           {slas.length === 0 ? <Empty message="Nenhum SLA registado." /> : (
             <Table headers={['Fornecedor', 'SLA Disp.', 'Cláusula Notif.', 'Auditoria', 'Status', '']}>
               {slas.map(s => (
@@ -186,7 +193,7 @@ function T2Content({ pid, sprint, template, locked, onRefresh, p4Active }: { pid
               ))}
             </Table>
           )}
-        </Card>
+        </SectionNA>
       ) : <div className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-3 text-sm text-gray-400">P4 – Third-Party Risk não ativo (N/A)</div>}
 
       {threatModal && <ThreatModal pid={pid} sprint={sprint} existingRefs={threats.map(t => t.threat_ref)} onClose={() => { setThreatModal(false); load() }} />}
@@ -220,7 +227,7 @@ function T2Content({ pid, sprint, template, locked, onRefresh, p4Active }: { pid
 
 function ThreatModal({ pid, sprint, existingRefs, onClose }: { pid: number; sprint: number; existingRefs: string[]; onClose: () => void }) {
   const STRIDE = ['Spoofing', 'Tampering', 'Repudiation', 'Information Disclosure', 'Denial of Service', 'Elevation of Privilege']
-  const [form, setForm] = useState({ threat_ref: '', stride_category: STRIDE[0], description: '', affected_asset: '', risk_level: 'MEDIUM', mitigation: '', test_ref: '' })
+  const [form, setForm] = useState({ threat_ref: '', stride_category: STRIDE[0], description: '', affected_asset: '', risk_level: 'MEDIUM', mitigation: '' })
   const dupRef = form.threat_ref.trim() !== '' && existingRefs.some(r => r.toLowerCase() === form.threat_ref.trim().toLowerCase())
   return (
     <Modal title="Nova Ameaça STRIDE" onClose={onClose}>
@@ -238,7 +245,6 @@ function ThreatModal({ pid, sprint, existingRefs, onClose }: { pid: number; spri
           <FormField label="Nível de Risco"><Select value={form.risk_level} onChange={e => setForm(f => ({ ...f, risk_level: e.target.value }))}><option>LOW</option><option>MEDIUM</option><option>HIGH</option><option>CRITICAL</option></Select></FormField>
         </div>
         <FormField label="Mitigação"><Textarea value={form.mitigation} onChange={e => setForm(f => ({ ...f, mitigation: e.target.value }))} /></FormField>
-        <FormField label="Ref. Teste de Segurança"><Input value={form.test_ref} onChange={e => setForm(f => ({ ...f, test_ref: e.target.value }))} placeholder="T4-001" /></FormField>
         <div className="flex justify-end gap-2 pt-1">
           <Button variant="secondary" onClick={onClose}>Cancelar</Button>
           <Button onClick={async () => {
@@ -246,7 +252,7 @@ function ThreatModal({ pid, sprint, existingRefs, onClose }: { pid: number; spri
               threat_ref: form.threat_ref, stride_category: form.stride_category,
               description: form.description, affected_asset: form.affected_asset || null,
               risk_level: form.risk_level as T2Threat['risk_level'],
-              mitigation: form.mitigation || null, test_ref: form.test_ref || null,
+              mitigation: form.mitigation || null,
             }); onClose()
           }} disabled={!form.threat_ref || !form.description || dupRef}>Guardar</Button>
         </div>

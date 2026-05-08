@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Trash2, Plus } from 'lucide-react'
-import { t3Api, type Template, type T3Data, type T3PipelineScan, type T3Dependency } from '../../api'
+import { t3Api, sectionNaApi, type Template, type T3Data, type T3PipelineScan, type T3Dependency, type SectionExclusion } from '../../api'
 import {
   Card, CardHeader, Button, Input, Select, Textarea, FormField,
   Checkbox, Badge, Modal, Table, Td, Spinner, Empty,
 } from '../../components/ui'
 import { Breadcrumbs } from '../../components/Layout'
 import SprintSelector from '../../components/SprintSelector'
+import SectionNA from '../../components/SectionNA'
 
 export default function T3Page() {
   const { projectId } = useParams<{ projectId: string }>()
@@ -45,6 +46,7 @@ function T3Content({ pid, sprint, template, locked, onRefresh }: { pid: number; 
   const [data, setData] = useState<T3Data | null>(null)
   const [scans, setScans] = useState<T3PipelineScan[]>([])
   const [deps, setDeps] = useState<T3Dependency[]>([])
+  const [exclusions, setExclusions] = useState<SectionExclusion[]>([])
   const [saving, setSaving] = useState(false)
   const [approveModal, setApproveModal] = useState(false)
   const [approver, setApprover] = useState('')
@@ -52,11 +54,15 @@ function T3Content({ pid, sprint, template, locked, onRefresh }: { pid: number; 
   const [depModal, setDepModal] = useState(false)
 
   const load = async () => {
-    const [d, s, dp] = await Promise.allSettled([t3Api.getData(pid, sprint), t3Api.scans(pid, sprint), t3Api.dependencies(pid, sprint)])
+    const [d, s, dp, excl] = await Promise.allSettled([
+      t3Api.getData(pid, sprint), t3Api.scans(pid, sprint), t3Api.dependencies(pid, sprint),
+      sectionNaApi.list(pid, 'T3', sprint),
+    ])
     if (d.status === 'fulfilled') setData(d.value)
-    else setData({ template_id: 0, owasp_guidelines_followed: false, code_review_completed: false, secrets_management_active: false, input_validation_active: false, auth_mechanisms_documented: false, structured_logging_active: false, audit_trail_auto_generated: false, log_retention_7yr: false, tamper_protection_active: false, dependency_inventory_updated: false, supplier_access_monitored: false, notes: null })
+    else setData({ template_id: 0, owasp_guidelines_followed: false, code_review_completed: false, secrets_management_active: false, input_validation_active: false, auth_mechanisms_documented: false, structured_logging_active: false, audit_trail_auto_generated: false, log_retention_7yr: false, tamper_protection_active: false, dependency_inventory_updated: false, supplier_access_monitored: false, systems_capacity_assessed: false, patches_applied_or_planned: false, notes: null })
     if (s.status === 'fulfilled') setScans(s.value)
     if (dp.status === 'fulfilled') setDeps(dp.value)
+    if (excl.status === 'fulfilled') setExclusions(excl.value)
   }
   useEffect(() => { load() }, [pid, sprint])
 
@@ -67,6 +73,7 @@ function T3Content({ pid, sprint, template, locked, onRefresh }: { pid: number; 
       input_validation_active: false, auth_mechanisms_documented: false, structured_logging_active: false,
       audit_trail_auto_generated: false, log_retention_7yr: false, tamper_protection_active: false,
       dependency_inventory_updated: false, supplier_access_monitored: false,
+      systems_capacity_assessed: false, patches_applied_or_planned: false,
     })
     setData(d)
   }
@@ -120,14 +127,22 @@ function T3Content({ pid, sprint, template, locked, onRefresh }: { pid: number; 
                   {boolField('supplier_access_monitored', 'Acessos de fornecedores monitorizados')}
                 </div>
               </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Sistemas TIC – Art. 7</p>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {boolField('systems_capacity_assessed',  'Capacidade dos sistemas TIC avaliada')}
+                  {boolField('patches_applied_or_planned', 'Patches e atualizações aplicados ou planeados')}
+                </div>
+              </div>
               <FormField label="Notas"><Textarea value={data?.notes ?? ''} disabled={locked} onChange={e => setData(d => d && { ...d, notes: e.target.value })} /></FormField>
               {!locked && <Button variant="secondary" onClick={saveData} disabled={saving}>{saving ? 'A guardar...' : 'Guardar'}</Button>}
             </div>
         </div>
       </Card>
 
-      <Card>
-        <CardHeader title="Pipeline Scans" action={!locked && <Button size="sm" onClick={() => setScanModal(true)}><Plus size={14} /> Adicionar</Button>} />
+      <SectionNA pid={pid} templateType="T3" sprint={sprint} sectionKey="pipeline"
+        title="Pipeline Scans" action={!locked && <Button size="sm" onClick={() => setScanModal(true)}><Plus size={14} /> Adicionar</Button>}
+        exclusion={exclusions.find(e => e.section_key === 'pipeline') ?? null} onChanged={load}>
         {scans.length === 0 ? <Empty message="Nenhum scan registado." /> : (
           <Table headers={['Tipo', 'Fase', 'Ambiente', 'Ferramenta', 'Resultado', 'Críticos', 'Data', '']}>
             {scans.map(s => (
@@ -144,10 +159,11 @@ function T3Content({ pid, sprint, template, locked, onRefresh }: { pid: number; 
             ))}
           </Table>
         )}
-      </Card>
+      </SectionNA>
 
-      <Card>
-        <CardHeader title="Dependências" action={!locked && <Button size="sm" onClick={() => setDepModal(true)}><Plus size={14} /> Adicionar</Button>} />
+      <SectionNA pid={pid} templateType="T3" sprint={sprint} sectionKey="dependencies"
+        title="Dependências" action={!locked && <Button size="sm" onClick={() => setDepModal(true)}><Plus size={14} /> Adicionar</Button>}
+        exclusion={exclusions.find(e => e.section_key === 'dependencies') ?? null} onChanged={load}>
         {deps.length === 0 ? <Empty message="Nenhuma dependência registada." /> : (
           <Table headers={['Package', 'Versão', 'CVE', 'CVSS', 'Status', '']}>
             {deps.map(d => (
@@ -162,7 +178,7 @@ function T3Content({ pid, sprint, template, locked, onRefresh }: { pid: number; 
             ))}
           </Table>
         )}
-      </Card>
+      </SectionNA>
 
       {scanModal && <ScanModal pid={pid} sprint={sprint} onClose={() => { setScanModal(false); load() }} />}
       {depModal && <DepModal pid={pid} sprint={sprint} existingPackages={deps.map(d => d.package_name)} onClose={() => { setDepModal(false); load() }} />}

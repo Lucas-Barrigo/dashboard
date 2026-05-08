@@ -139,24 +139,26 @@ class T1UserStoryRead(ORMModel):
     criteria_availability:    Optional[str]
 
 class T1RiskCreate(BaseModel):
-    risk_ref:    str
-    description: str
-    probability: str  # HIGH | MEDIUM | LOW
-    impact:      str  # HIGH | MEDIUM | LOW
-    pillar:      str  # P1–P5
-    mitigation:  Optional[str] = None
-    status:      str = "OPEN"
+    risk_ref:                str
+    description:             str
+    probability:             str  # HIGH | MEDIUM | LOW
+    impact:                  str  # HIGH | MEDIUM | LOW
+    pillar:                  str  # P1–P5
+    mitigation:              Optional[str] = None
+    status:                  str = "OPEN"
+    acceptance_justification: Optional[str] = None
 
 class T1RiskRead(ORMModel):
-    id:          int
-    template_id: int
-    risk_ref:    str
-    description: str
-    probability: str
-    impact:      str
-    pillar:      str
-    mitigation:  Optional[str]
-    status:      str
+    id:                      int
+    template_id:             int
+    risk_ref:                str
+    description:             str
+    probability:             str
+    impact:                  str
+    pillar:                  str
+    mitigation:              Optional[str]
+    status:                  str
+    acceptance_justification: Optional[str]
 
 class T1SupplierCreate(BaseModel):
     supplier_name:         str
@@ -207,7 +209,6 @@ class T2ThreatCreate(BaseModel):
     affected_asset:  Optional[str] = None
     risk_level:      Optional[str] = None
     mitigation:      Optional[str] = None
-    test_ref:        Optional[str] = None
 
 class T2ThreatRead(ORMModel):
     id:              int
@@ -218,7 +219,6 @@ class T2ThreatRead(ORMModel):
     affected_asset:  Optional[str]
     risk_level:      Optional[str]
     mitigation:      Optional[str]
-    test_ref:        Optional[str]
 
 class T2ADRCreate(BaseModel):
     adr_ref:                str
@@ -277,6 +277,8 @@ class T3DataCreate(BaseModel):
     tamper_protection_active:     bool = False
     dependency_inventory_updated: bool = False
     supplier_access_monitored:    bool = False
+    systems_capacity_assessed:    bool = False
+    patches_applied_or_planned:   bool = False
     notes:                        Optional[str] = None
 
 class T3DataRead(ORMModel):
@@ -292,6 +294,8 @@ class T3DataRead(ORMModel):
     tamper_protection_active:     bool
     dependency_inventory_updated: bool
     supplier_access_monitored:    bool
+    systems_capacity_assessed:    bool
+    patches_applied_or_planned:   bool
     notes:                        Optional[str]
 
 class T3PipelineScanCreate(BaseModel):
@@ -341,6 +345,8 @@ class T4DataCreate(BaseModel):
     tlpt_applicable:                bool = False
     tlpt_completed_or_scheduled:    bool = False
     tlpt_date:                      Optional[str] = None
+    tlpt_tester_certified:          bool = False
+    tlpt_tester_insured:            bool = False
     audit_trail_integrity_verified: bool = False
     incident_response_tested:       bool = False
     risk_assessments_validated:     bool = False
@@ -351,10 +357,30 @@ class T4DataRead(ORMModel):
     tlpt_applicable:                bool
     tlpt_completed_or_scheduled:    bool
     tlpt_date:                      Optional[str]
+    tlpt_tester_certified:          bool
+    tlpt_tester_insured:            bool
     audit_trail_integrity_verified: bool
     incident_response_tested:       bool
     risk_assessments_validated:     bool
     notes:                          Optional[str]
+
+class T4CrossSectorExerciseCreate(BaseModel):
+    exercise_name:      str
+    exercise_date:      Optional[str] = None
+    organized_by:       Optional[str] = None
+    participation_type: str = "PARTICIPANT"
+    scenario_type:      Optional[str] = None
+    outcome:            Optional[str] = None
+
+class T4CrossSectorExerciseRead(ORMModel):
+    id:                 int
+    template_id:        int
+    exercise_name:      str
+    exercise_date:      Optional[str]
+    organized_by:       Optional[str]
+    participation_type: str
+    scenario_type:      Optional[str]
+    outcome:            Optional[str]
 
 class T4SecurityTestCreate(BaseModel):
     test_ref:     str
@@ -445,6 +471,10 @@ class T5DataCreate(BaseModel):
     incident_classification_defined:   bool = False
     authority_contacts_identified:     bool = False
     post_mortem_process_defined:       bool = False
+    systems_patches_current:           bool = False
+    backup_restore_tested:             bool = False
+    backup_storage_segregated:         bool = False
+    crisis_comms_plan_tested:          bool = False
     notes:                             Optional[str] = None
 
 class T5DataRead(ORMModel):
@@ -464,6 +494,10 @@ class T5DataRead(ORMModel):
     incident_classification_defined:   bool
     authority_contacts_identified:     bool
     post_mortem_process_defined:       bool
+    systems_patches_current:           bool
+    backup_restore_tested:             bool
+    backup_storage_segregated:         bool
+    crisis_comms_plan_tested:          bool
     notes:                             Optional[str]
 
 class T5IncidentCreate(BaseModel):
@@ -522,6 +556,18 @@ class T5SharingAgreementRead(ORMModel):
 # =============================================================
 # DASHBOARD
 # =============================================================
+
+class SectionExclusionCreate(BaseModel):
+    section_key:   str
+    justification: str
+
+class SectionExclusionRead(ORMModel):
+    id:            int
+    template_id:   int
+    section_key:   str
+    justification: str
+    marked_at:     datetime
+
 
 class EvidenceRead(ORMModel):
     id:          int

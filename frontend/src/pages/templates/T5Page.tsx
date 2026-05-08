@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Trash2, Plus } from 'lucide-react'
-import { t5Api, projectsApi, type Project, type Template, type T5Data, type T5Incident, type T5SupplierEvaluation, type T5SharingAgreement } from '../../api'
+import { t5Api, projectsApi, sectionNaApi, type Project, type Template, type T5Data, type T5Incident, type T5SupplierEvaluation, type T5SharingAgreement, type SectionExclusion } from '../../api'
 import {
   Card, CardHeader, Button, Input, Select, Textarea, FormField,
   Checkbox, Badge, Modal, Table, Td, Spinner, Empty,
 } from '../../components/ui'
 import { Breadcrumbs } from '../../components/Layout'
 import SprintSelector from '../../components/SprintSelector'
+import SectionNA from '../../components/SectionNA'
 
 export default function T5Page() {
   const { projectId } = useParams<{ projectId: string }>()
@@ -49,21 +50,24 @@ function T5Content({ pid, sprint, template, locked, onRefresh, p2Active, p4Activ
   const [incidents, setIncidents] = useState<T5Incident[]>([])
   const [evals, setEvals] = useState<T5SupplierEvaluation[]>([])
   const [agreements, setAgreements] = useState<T5SharingAgreement[]>([])
+  const [exclusions, setExclusions] = useState<SectionExclusion[]>([])
   const [saving, setSaving] = useState(false)
   const [approveModal, setApproveModal] = useState(false)
   const [approver, setApprover] = useState('')
   const [modals, setModals] = useState({ inc: false, eval: false, ag: false })
 
   const load = async () => {
-    const [d, i, e, a] = await Promise.allSettled([
+    const [d, i, e, a, excl] = await Promise.allSettled([
       t5Api.getData(pid, sprint), t5Api.incidents(pid, sprint),
       t5Api.supplierEvals(pid, sprint), t5Api.sharingAgreements(pid, sprint),
+      sectionNaApi.list(pid, 'T5', sprint),
     ])
     if (d.status === 'fulfilled') setData(d.value)
-    else setData({ template_id: 0, pre_deploy_security_validated: false, system_hardening_completed: false, secrets_rotated: false, post_deploy_scan_done: false, rollback_plan_documented: false, siem_active: false, infra_monitoring_rules_defined: false, threat_intelligence_feeds_active: false, continuous_vuln_assessment_active: false, incident_response_plan_active: false, notification_4h_documented: false, notification_4h_tested: false, incident_classification_defined: false, authority_contacts_identified: false, post_mortem_process_defined: false, notes: null })
+    else setData({ template_id: 0, pre_deploy_security_validated: false, system_hardening_completed: false, secrets_rotated: false, post_deploy_scan_done: false, rollback_plan_documented: false, siem_active: false, infra_monitoring_rules_defined: false, threat_intelligence_feeds_active: false, continuous_vuln_assessment_active: false, incident_response_plan_active: false, notification_4h_documented: false, notification_4h_tested: false, incident_classification_defined: false, authority_contacts_identified: false, post_mortem_process_defined: false, systems_patches_current: false, backup_restore_tested: false, backup_storage_segregated: false, crisis_comms_plan_tested: false, notes: null })
     if (i.status === 'fulfilled') setIncidents(i.value)
     if (e.status === 'fulfilled') setEvals(e.value)
     if (a.status === 'fulfilled') setAgreements(a.value)
+    if (excl.status === 'fulfilled') setExclusions(excl.value)
   }
   useEffect(() => { load() }, [pid, sprint])
 
@@ -76,7 +80,8 @@ function T5Content({ pid, sprint, template, locked, onRefresh, p2Active, p4Activ
       continuous_vuln_assessment_active: false, incident_response_plan_active: false,
       notification_4h_documented: false, notification_4h_tested: false,
       incident_classification_defined: false, authority_contacts_identified: false,
-      post_mortem_process_defined: false,
+      post_mortem_process_defined: false, systems_patches_current: false,
+      backup_restore_tested: false, backup_storage_segregated: false, crisis_comms_plan_tested: false,
     })
     setData(d)
   }
@@ -132,6 +137,15 @@ function T5Content({ pid, sprint, template, locked, onRefresh, p2Active, p4Activ
                   {boolField('incident_classification_defined', 'Classificação de incidentes definida')}
                   {boolField('authority_contacts_identified', 'Contactos de autoridade identificados')}
                   {boolField('post_mortem_process_defined', 'Processo de post-mortem definido')}
+                  {boolField('crisis_comms_plan_tested', 'Plano de comunicação de crise testado (Art. 14)')}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Sistemas TIC & Backup – Art. 7 / 12</p>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {boolField('systems_patches_current',    'Sistemas TIC com patches em dia (Art. 7)')}
+                  {boolField('backup_restore_tested',      'Restauro de backup testado neste sprint (Art. 12)')}
+                  {boolField('backup_storage_segregated',  'Armazenamento de backup fisicamente segregado (Art. 12)')}
                 </div>
               </div>
               <FormField label="Notas"><Textarea value={data?.notes ?? ''} disabled={locked} onChange={e => setData(d => d && { ...d, notes: e.target.value })} /></FormField>
@@ -163,8 +177,9 @@ function T5Content({ pid, sprint, template, locked, onRefresh, p2Active, p4Activ
       ) : <div className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-3 text-sm text-gray-400">P2 – Incident Management não ativo (N/A)</div>}
 
       {p4Active ? (
-        <Card>
-          <CardHeader title="Avaliações de Fornecedores" action={!locked && <Button size="sm" onClick={() => setModals(m => ({ ...m, eval: true }))}><Plus size={14} /> Adicionar</Button>} />
+        <SectionNA pid={pid} templateType="T5" sprint={sprint} sectionKey="supplier_eval"
+          title="Avaliações de Fornecedores" action={!locked && <Button size="sm" onClick={() => setModals(m => ({ ...m, eval: true }))}><Plus size={14} /> Adicionar</Button>}
+          exclusion={exclusions.find(e => e.section_key === 'supplier_eval') ?? null} onChanged={load}>
           {evals.length === 0 ? <Empty message="Nenhuma avaliação registada." /> : (
             <Table headers={['Fornecedor', 'Última Rev.', 'SLA Cumprido', 'Incidentes', 'Status', '']}>
               {evals.map(e => (
@@ -179,12 +194,13 @@ function T5Content({ pid, sprint, template, locked, onRefresh, p2Active, p4Activ
               ))}
             </Table>
           )}
-        </Card>
+        </SectionNA>
       ) : <div className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-3 text-sm text-gray-400">P4 – Third-Party Risk não ativo (N/A)</div>}
 
       {p5Active ? (
-        <Card>
-          <CardHeader title="Acordos de Partilha de Informação" action={!locked && <Button size="sm" onClick={() => setModals(m => ({ ...m, ag: true }))}><Plus size={14} /> Adicionar</Button>} />
+        <SectionNA pid={pid} templateType="T5" sprint={sprint} sectionKey="information_sharing"
+          title="Acordos de Partilha de Informação" action={!locked && <Button size="sm" onClick={() => setModals(m => ({ ...m, ag: true }))}><Plus size={14} /> Adicionar</Button>}
+          exclusion={exclusions.find(e => e.section_key === 'information_sharing') ?? null} onChanged={load}>
           {agreements.length === 0 ? <Empty message="Nenhum acordo registado." /> : (
             <Table headers={['Nome', 'IOC Partilha', 'Threat Intel', 'Report Autoridade', '']}>
               {agreements.map(a => (
@@ -198,7 +214,7 @@ function T5Content({ pid, sprint, template, locked, onRefresh, p2Active, p4Activ
               ))}
             </Table>
           )}
-        </Card>
+        </SectionNA>
       ) : <div className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-3 text-sm text-gray-400">P5 – Information Sharing não ativo (N/A)</div>}
 
       {modals.inc && <IncidentModal pid={pid} sprint={sprint} existingRefs={incidents.map(i => i.incident_ref)} onClose={() => { setModals(m => ({ ...m, inc: false })); load() }} />}

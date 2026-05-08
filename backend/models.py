@@ -85,15 +85,17 @@ class Template(Base):
     t3_pipeline_scans:       Mapped[List["T3PipelineScan"]]      = relationship(back_populates="template", cascade="all, delete-orphan")
     t3_dependencies:         Mapped[List["T3Dependency"]]        = relationship(back_populates="template", cascade="all, delete-orphan")
     t4_data:                 Mapped[Optional["T4Data"]]          = relationship(back_populates="template", cascade="all, delete-orphan", uselist=False)
-    t4_security_tests:       Mapped[List["T4SecurityTest"]]      = relationship(back_populates="template", cascade="all, delete-orphan")
-    t4_pen_tests:            Mapped[List["T4PenTest"]]           = relationship(back_populates="template", cascade="all, delete-orphan")
-    t4_resilience_tests:     Mapped[List["T4ResilienceTest"]]    = relationship(back_populates="template", cascade="all, delete-orphan")
-    t4_supplier_failure_sims:Mapped[List["T4SupplierFailureSim"]]= relationship(back_populates="template", cascade="all, delete-orphan")
+    t4_security_tests:         Mapped[List["T4SecurityTest"]]        = relationship(back_populates="template", cascade="all, delete-orphan")
+    t4_pen_tests:              Mapped[List["T4PenTest"]]             = relationship(back_populates="template", cascade="all, delete-orphan")
+    t4_resilience_tests:       Mapped[List["T4ResilienceTest"]]      = relationship(back_populates="template", cascade="all, delete-orphan")
+    t4_supplier_failure_sims:  Mapped[List["T4SupplierFailureSim"]]  = relationship(back_populates="template", cascade="all, delete-orphan")
+    t4_cross_sector_exercises: Mapped[List["T4CrossSectorExercise"]] = relationship(back_populates="template", cascade="all, delete-orphan")
     t5_data:                 Mapped[Optional["T5Data"]]          = relationship(back_populates="template", cascade="all, delete-orphan", uselist=False)
     t5_incidents:            Mapped[List["T5Incident"]]          = relationship(back_populates="template", cascade="all, delete-orphan")
     t5_supplier_evaluations: Mapped[List["T5SupplierEvaluation"]]= relationship(back_populates="template", cascade="all, delete-orphan")
     t5_sharing_agreements:   Mapped[List["T5SharingAgreement"]]  = relationship(back_populates="template", cascade="all, delete-orphan")
     evidence:                Mapped[List["Evidence"]]            = relationship(back_populates="template", cascade="all, delete-orphan")
+    section_exclusions:      Mapped[List["SectionExclusion"]]   = relationship(back_populates="template", cascade="all, delete-orphan")
     alerts:                  Mapped[List["Alert"]]               = relationship(back_populates="template")
 
 
@@ -157,8 +159,9 @@ class T1Risk(Base):
     probability: Mapped[str]           = mapped_column(String, nullable=False)
     impact:      Mapped[str]           = mapped_column(String, nullable=False)
     pillar:      Mapped[str]           = mapped_column(String, nullable=False)
-    mitigation:  Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    status:      Mapped[str]           = mapped_column(String, default="OPEN")
+    mitigation:              Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status:                  Mapped[str]           = mapped_column(String, default="OPEN")
+    acceptance_justification: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     template: Mapped["Template"] = relationship(back_populates="t1_risks")
 
@@ -208,7 +211,6 @@ class T2Threat(Base):
     affected_asset:  Mapped[Optional[str]] = mapped_column(String, nullable=True)
     risk_level:      Mapped[Optional[str]] = mapped_column(String, nullable=True)
     mitigation:      Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    test_ref:        Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     template: Mapped["Template"] = relationship(back_populates="t2_threats")
 
@@ -263,6 +265,8 @@ class T3Data(Base):
     tamper_protection_active:     Mapped[bool]          = mapped_column(Boolean, default=False)
     dependency_inventory_updated: Mapped[bool]          = mapped_column(Boolean, default=False)
     supplier_access_monitored:    Mapped[bool]          = mapped_column(Boolean, default=False)
+    systems_capacity_assessed:    Mapped[bool]          = mapped_column(Boolean, default=False)
+    patches_applied_or_planned:   Mapped[bool]          = mapped_column(Boolean, default=False)
     notes:                        Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     template: Mapped["Template"] = relationship(back_populates="t3_data")
@@ -313,6 +317,8 @@ class T4Data(Base):
     audit_trail_integrity_verified: Mapped[bool]          = mapped_column(Boolean, default=False)
     incident_response_tested:       Mapped[bool]          = mapped_column(Boolean, default=False)
     risk_assessments_validated:     Mapped[bool]          = mapped_column(Boolean, default=False)
+    tlpt_tester_certified:          Mapped[bool]          = mapped_column(Boolean, default=False)
+    tlpt_tester_insured:            Mapped[bool]          = mapped_column(Boolean, default=False)
     notes:                          Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     template: Mapped["Template"] = relationship(back_populates="t4_data")
@@ -363,6 +369,21 @@ class T4ResilienceTest(Base):
     template: Mapped["Template"] = relationship(back_populates="t4_resilience_tests")
 
 
+class T4CrossSectorExercise(Base):
+    __tablename__ = "t4_cross_sector_exercises"
+
+    id:                 Mapped[int]           = mapped_column(primary_key=True)
+    template_id:        Mapped[int]           = mapped_column(ForeignKey("templates.id", ondelete="CASCADE"), nullable=False)
+    exercise_name:      Mapped[str]           = mapped_column(String, nullable=False)
+    exercise_date:      Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    organized_by:       Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    participation_type: Mapped[str]           = mapped_column(String, nullable=False, default="PARTICIPANT")
+    scenario_type:      Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    outcome:            Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    template: Mapped["Template"] = relationship(back_populates="t4_cross_sector_exercises")
+
+
 class T4SupplierFailureSim(Base):
     __tablename__ = "t4_supplier_failure_sims"
 
@@ -399,6 +420,10 @@ class T5Data(Base):
     incident_classification_defined:   Mapped[bool]          = mapped_column(Boolean, default=False)
     authority_contacts_identified:     Mapped[bool]          = mapped_column(Boolean, default=False)
     post_mortem_process_defined:       Mapped[bool]          = mapped_column(Boolean, default=False)
+    systems_patches_current:           Mapped[bool]          = mapped_column(Boolean, default=False)
+    backup_restore_tested:             Mapped[bool]          = mapped_column(Boolean, default=False)
+    backup_storage_segregated:         Mapped[bool]          = mapped_column(Boolean, default=False)
+    crisis_comms_plan_tested:          Mapped[bool]          = mapped_column(Boolean, default=False)
     notes:                             Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     template: Mapped["Template"] = relationship(back_populates="t5_data")
@@ -465,6 +490,19 @@ class Evidence(Base):
     updated_at:  Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     template: Mapped["Template"] = relationship(back_populates="evidence")
+
+
+class SectionExclusion(Base):
+    __tablename__ = "section_exclusions"
+    __table_args__ = (UniqueConstraint("template_id", "section_key"),)
+
+    id:            Mapped[int]      = mapped_column(primary_key=True)
+    template_id:   Mapped[int]      = mapped_column(ForeignKey("templates.id", ondelete="CASCADE"), nullable=False)
+    section_key:   Mapped[str]      = mapped_column(String, nullable=False)
+    justification: Mapped[str]      = mapped_column(Text, nullable=False)
+    marked_at:     Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    template: Mapped["Template"] = relationship(back_populates="section_exclusions")
 
 
 class Alert(Base):
