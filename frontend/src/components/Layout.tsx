@@ -10,7 +10,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <aside className="w-56 bg-white border-r border-gray-200 flex flex-col shrink-0">
         <div className="px-5 py-5 border-b border-gray-100">
           <p className="text-xs font-semibold text-indigo-600 uppercase tracking-widest">DORA</p>
-          <h1 className="text-sm font-bold text-gray-900 leading-tight">Compliance Dashboard</h1>
+          <h1 className="text-sm font-bold text-gray-900 leading-tight">Compliance Checklist</h1>
         </div>
         <nav className="flex-1 p-3 space-y-0.5">
           <NavLink to="/" icon={<LayoutDashboard size={15} />} active={loc.pathname === '/'}>

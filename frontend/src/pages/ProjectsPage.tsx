@@ -54,7 +54,6 @@ export default function ProjectsPage() {
                   </button>
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5">{p.institution} · {p.responsible}</p>
-                {p.criticality && <p className="text-xs text-gray-400 mt-0.5">Criticidade: {p.criticality}</p>}
                 <div className="mt-3 flex flex-wrap gap-2">
                   {(['p1', 'p2', 'p3', 'p4', 'p5'] as const).map(pk => {
                     const active = p[`${pk}_active` as keyof Project] as boolean
@@ -71,9 +70,8 @@ export default function ProjectsPage() {
                   })}
                 </div>
               </div>
-              <div className="px-5 py-3 border-t border-gray-100 flex justify-between items-center">
-                <span className="text-xs text-gray-400">Sprint {p.sprint_duration_days}d</span>
-                <Button variant="ghost" size="sm" onClick={() => navigate(`/projects/${p.id}`)}>
+              <div className="px-5 py-3 border-t border-gray-100 flex justify-end items-center">
+                <Button variant="ghost" size="sm" onClick={() => navigate(`/projects/${p.id}/qualification`)}>
                   Abrir <ArrowRight size={13} />
                 </Button>
               </div>
@@ -88,7 +86,7 @@ export default function ProjectsPage() {
 }
 
 function NewProjectModal({ onClose }: { onClose: () => void }) {
-  const [form, setForm] = useState<ProjectCreate>({ name: '', institution: '', responsible: '', sprint_duration_days: 14 })
+  const [form, setForm] = useState<ProjectCreate>({ name: '', institution: '', responsible: '' })
   const [saving, setSaving] = useState(false)
 
   const submit = async () => {
@@ -110,17 +108,6 @@ function NewProjectModal({ onClose }: { onClose: () => void }) {
         </FormField>
         <FormField label="Responsável *">
           <Input value={form.responsible} onChange={e => setForm(f => ({ ...f, responsible: e.target.value }))} placeholder="Ex: João Silva" />
-        </FormField>
-        <FormField label="Criticidade">
-          <Input value={form.criticality ?? ''} onChange={e => setForm(f => ({ ...f, criticality: e.target.value || undefined }))} placeholder="Ex: ALTA, MÉDIA, BAIXA" />
-        </FormField>
-        <FormField label="Duração do Sprint (dias)">
-          <Input
-            type="number"
-            min={1}
-            value={form.sprint_duration_days}
-            onChange={e => setForm(f => ({ ...f, sprint_duration_days: Number(e.target.value) }))}
-          />
         </FormField>
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="secondary" onClick={onClose}>Cancelar</Button>

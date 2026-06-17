@@ -21,9 +21,10 @@ const badgeColors: Record<string, string> = {
   ACCEPTED: 'bg-gray-100 text-gray-600',
 }
 
-export function Badge({ label }: { label: string }) {
-  const cls = badgeColors[label] ?? 'bg-gray-100 text-gray-700'
-  return <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${cls}`}>{label}</span>
+export function Badge({ children, className, label }: { children?: React.ReactNode; className?: string; label?: string }) {
+  const text = label || children
+  const cls = label ? (badgeColors[label] ?? 'bg-gray-100 text-gray-700') : (className ?? 'bg-gray-100 text-gray-700')
+  return <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${cls}`}>{text}</span>
 }
 
 // ── Card ──────────────────────────────────────────────────────────────────
